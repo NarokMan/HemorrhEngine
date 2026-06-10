@@ -52,7 +52,8 @@ int write_cfg(std::string map_name,
     std::string music_file,
     int playerx, int playery, int player_angle) {
 	
-	fopen_s(&file, ("maps/" + map_name + "/" + map_name + ".cfg").c_str(), "w");
+	//fopen_s(&file, ("maps/" + map_name + "/" + map_name + ".cfg").c_str(), "w");
+	file = fopen(("maps/" + map_name + "/" + map_name + ".cfg").c_str(), "w");
 	if (file == NULL)
 		return -1;
 
@@ -71,6 +72,8 @@ int write_cfg(std::string map_name,
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
 	fprintf(file, "%d %d %d", playerx, playery, player_angle);
+	
+	fclose(file);
 
     return 0;
 
@@ -78,7 +81,8 @@ int write_cfg(std::string map_name,
 
 int write_cluster_file(std::string filename, struct collision_cluster cluster) {
 
-    fopen_s(&file, filename.c_str(), "w");
+    //fopen_s(&file, filename.c_str(), "w");
+	file = fopen(filename.c_str(), "w");
 
     if (file == NULL)
         return -1;
@@ -116,7 +120,8 @@ int write_all_clusters(std::string map_name, std::vector<struct collision_cluste
 
 int write_trigger_file(std::string filename, struct trigger_cluster cluster) {
 
-    fopen_s(&file, filename.c_str(), "w");
+    //fopen_s(&file, filename.c_str(), "w");
+	file = fopen(filename.c_str(), "w");
 
     if (file == NULL)
         return -1;
@@ -276,7 +281,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
     }
 
     // Create window
-    if (!SDL_CreateWindowAndRenderer("Hemorrhengine", WINDOW_WIDTH, WINDOW_HEIGHT, NULL, &window, &renderer)) {
+    if (!SDL_CreateWindowAndRenderer("Hemorrhengine", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_INPUT_FOCUS, &window, &renderer)) {
         SDL_Log(ANSI_COLOR_RED "Couldn't create window/renderer: %s" ANSI_COLOR_RESET, SDL_GetError());
         return SDL_APP_FAILURE;
     }
