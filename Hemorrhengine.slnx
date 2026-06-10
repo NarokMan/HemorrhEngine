@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Hemorrhengine.vcxproj" Id="4eedf963-c9cb-4e5c-a258-41d3962e3459" />
+</Solution>
