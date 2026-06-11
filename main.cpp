@@ -205,15 +205,19 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
 				TTF_CloseFont(font);
 				
 				SDL_Quit();
+				exit(0);
 				break;
 
 			case SDL_EVENT_KEY_UP:
 
 				printf("Key up: %c\n", event.key.key);
-                if (event.key.scancode >= 4 && event.key.scancode < 40) {
+                if (event.key.scancode >= 4 && event.key.scancode < 30) { // Letters
                     input = input + (char)(event.key.key - 32);
                     printf("%s", input.c_str());
-                } else if (event.key.scancode == SDL_SCANCODE_SPACE) { 
+                } else if (event.key.scancode >= 30 && event.key.scancode < 40) { // Numbers
+                    input = input + (char)(event.key.key);
+                    printf("%s", input.c_str());
+                } else if (event.key.scancode == SDL_SCANCODE_SPACE) { // Space
 					input = input + (char)95;
                     printf("%s", input.c_str());
                 } else if (event.key.scancode == SDL_SCANCODE_RETURN) {
@@ -576,7 +580,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
 
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, "doom3.mp3", 100, 100, 0); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, "doom3.mp3", (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 				}
