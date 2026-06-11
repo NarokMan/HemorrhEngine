@@ -159,20 +159,22 @@ int write_all_triggers(std::string map_name, std::vector<struct trigger_cluster>
 
 }
 
+int frameStart = 0;
+
 std::optional <std::string> text_query(SDL_Renderer* renderer, std::string prompt) {
 
     bool finished = false;
     std::string input = "";
     
-    TTF_Font* font = TTF_OpenFont("ui/TypeLightSans.ttf", 50);
+    TTF_Font* font = TTF_OpenFont("ui/octin_spraypaint_a.ttf", 50);
     if (!font) {
 		SDL_Log(ANSI_COLOR_RED "Couldn't load font file: %s" ANSI_COLOR_RESET, SDL_GetError());
 		return std::nullopt;
 	} else 
 		SDL_Log(ANSI_COLOR_GREEN "Successfully loaded font file" ANSI_COLOR_RESET);
 		
-    
-    SDL_Surface* temp_surface = TTF_RenderText_Solid(font, prompt.c_str(), prompt.length(), (SDL_Color) {255, 255, 255, 255});
+    SDL_Color text_color = { 255, 255, 255, 255 };
+    SDL_Surface* temp_surface = TTF_RenderText_Solid(font, prompt.c_str(), prompt.length(), text_color);
     SDL_Texture* prompt_texture = SDL_CreateTextureFromSurface(renderer, temp_surface);
     SDL_DestroySurface(temp_surface);
     
@@ -184,9 +186,12 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
     float input_size_x;
     float input_size_y;
     SDL_FRect input_rect;
-    SDL_Texture* input_texture;
+    SDL_Texture* input_texture = nullptr;
+
 
 	while (!finished) {
+
+        frameStart = SDL_GetTicks();
 
         SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
         SDL_RenderClear(renderer);
@@ -222,13 +227,19 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
 					if (!input.empty())
 						input.pop_back();
 				}
-				
-				temp_surface = TTF_RenderText_Solid(font, input.c_str(), input.length(), (SDL_Color) {255, 255, 255, 255});
+			    
+				temp_surface = TTF_RenderText_Solid(font, input.c_str(), input.length(), text_color);
 				SDL_DestroyTexture(input_texture);
 				input_texture = SDL_CreateTextureFromSurface(renderer, temp_surface);
 				SDL_DestroySurface(temp_surface);
 				SDL_GetTextureSize(input_texture, &input_size_x, &input_size_y);
-				input_rect = (SDL_FRect) {WINDOW_WIDTH / 2 - input_size_x / 2, WINDOW_HEIGHT / 2, input_size_x, input_size_y};
+
+                // Stupid formatting because fucking windows is having a cow. 
+                input_rect.x = WINDOW_WIDTH / 2 - input_size_x / 2;
+                input_rect.y = WINDOW_HEIGHT / 2;
+                input_rect.w = input_size_x;
+                input_rect.h = input_size_y;
+                input_rect = SDL_FRect{ WINDOW_WIDTH / 2 - input_size_x / 2, WINDOW_HEIGHT / 2, input_size_x, input_size_y };
 
                 break;
 
@@ -240,6 +251,10 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
 		SDL_RenderTexture(renderer, input_texture, NULL, &input_rect);
 		
         SDL_RenderPresent(renderer);
+
+        if (SDL_GetTicks() - frameStart < (1000 / TARGET_FPS)) {
+            SDL_Delay((1000 / TARGET_FPS) - (SDL_GetTicks() - frameStart)); // cap frames
+        }
 
 	}
 
@@ -299,8 +314,6 @@ bool player_position_selection_state = true;
 int player_start_angle = 0;
 int player_start_x = 800;
 int player_start_y = 450;
-
-int frameStart = 0;
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 {
