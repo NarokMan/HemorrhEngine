@@ -20,7 +20,7 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 2
+#define EDITOR_IMAGES 3
 
 FILE* file;
 
@@ -165,6 +165,13 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
     std::string input = "";
     
     TTF_Font* font = TTF_OpenFont("ui/TypeLightSans.ttf", 50);
+    if (!font) {
+		SDL_Log(ANSI_COLOR_RED "Couldn't load font file: %s" ANSI_COLOR_RESET, SDL_GetError());
+		return std::nullopt;
+	} else 
+		SDL_Log(ANSI_COLOR_GREEN "Successfully loaded font file" ANSI_COLOR_RESET);
+		
+    
     SDL_Surface* temp_surface = TTF_RenderText_Solid(font, prompt.c_str(), prompt.length(), (SDL_Color) {255, 255, 255, 255});
     SDL_Texture* prompt_texture = SDL_CreateTextureFromSurface(renderer, temp_surface);
     SDL_DestroySurface(temp_surface);
@@ -269,10 +276,12 @@ MIX_Mixer* mixer = NULL;
 
 char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/hemorrhage_actionbar.png",
-	"ui/hemorrhage_toolbar.png"
+	"ui/hemorrhage_toolbar.png",
+	"ui/player_start_pos.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
     NULL,
     NULL
 };
@@ -286,9 +295,10 @@ int active_trigger_cluster = -1;
 std::vector<struct collision_cluster> collision_cluster_array;
 std::vector<struct trigger_cluster> trigger_cluster_array;
 
+bool player_position_selection_state = true; 
 int player_start_angle = 0;
-int player_start_x = 0;
-int player_start_y = 0;
+int player_start_x = 800;
+int player_start_y = 450;
 
 int frameStart = 0;
 
@@ -389,6 +399,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
     ui_buttons.push_back({ { 500, 0, 95, 50 } }); // load
     ui_buttons.push_back({ { 740, 0, 75, 50 } }); // run
     ui_buttons.push_back({ { 950, 0, 110, 50 } }); // music
+	ui_buttons.push_back({ { 1196, 0, 250, 50 } });
 
     if (ui_buttons.empty()) {
         SDL_Log(ANSI_COLOR_RED "Failed to allocate for buttons. %s" ANSI_COLOR_RESET, SDL_GetError());
@@ -412,7 +423,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
     std::string map_name;
     std::string clusters_dir;
     std::string cluster_file_name;
-
+    
     switch (event->type) {
 
 	case SDL_EVENT_QUIT:
@@ -424,6 +435,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
         int mouse_x = event->button.x;
         int mouse_y = event->button.y;
 		if (event->button.button == SDL_BUTTON_LEFT) {
+			
+			SDL_Log("Mouse: %d, %d", mouse_x, mouse_y);
 			
             if (mouse_x > GRID_LEFT_MARGIN && mouse_y > GRID_UPPER_MARGIN) {
 
@@ -499,7 +512,22 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 8: // Save
+                case 12: // Change player starting position / angle
+						// Selects player position on first click, player angle on second.
+                
+					// 0 if the user is selecting the x/y location. Will switch to false when angle is being selected
+					if (player_position_selection_state == true) {
+						
+						player_start_x = mouse_x;
+						player_start_y = mouse_y;
+						player_position_selection_state = false;
+						
+					} else {
+						
+						player_start_angle = 180 / 3.14 * SDL_atan2(mouse_y - player_start_y, mouse_x - player_start_x);
+						player_position_selection_state = true;
+						
+					}					
 
                     break;
 
@@ -522,9 +550,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                 switch (active_tool) {
 
-                case 8:
+                case 8: { // Save da map, used brackets to keep auto's scope isolated here
 
-					auto result = text_query(renderer, "Enter map name: ");
+					auto result = text_query(renderer, "Enter map name to save to:");
 					if (!result.has_value()) {
 						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
 						break;
@@ -538,8 +566,35 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, "doom3.mp3", 100, 100, 0); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
+				}
 
                     break;
+                    
+                 case 9: { // Load da map
+                 
+					auto result = text_query(renderer, "Enter map to load:");
+                 
+					// load map file here ig
+                 
+					break;
+					
+				}
+				
+				case 11: { // Pick music file
+					
+					auto result = text_query(renderer, "Enter MP3 file to load as this map's music file.");
+					
+					break;
+					
+					// Modify this map's music file ig
+					
+				}
+				
+				case 12: // Pick player starting location
+				
+					player_position_selection_state = true;
+					
+					break;
 
                 }
             }
@@ -629,8 +684,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
     SDL_FRect actionbar_rect = { 0, 0, WINDOW_WIDTH, 50 };
     SDL_FRect toolbar_rect = { 0, 0, 100, WINDOW_HEIGHT };
+    SDL_FRect player_start_rect = { (float) player_start_x - 50, (float) player_start_y - 50, 100, 100 };
+    SDL_FPoint player_start_rotation_point = { 50, 50 };
     SDL_RenderTexture(renderer, ui_textures[0], NULL, &actionbar_rect);
     SDL_RenderTexture(renderer, ui_textures[1], NULL, &toolbar_rect);
+    SDL_RenderTextureRotated(renderer, ui_textures[2], NULL, &player_start_rect, player_start_angle, &player_start_rotation_point, SDL_FLIP_NONE);
 
     // This for loop is where the program draws the collision clusters.
     for (int i = 0; i < collision_cluster_array.size(); i++) {
