@@ -3,7 +3,7 @@ I've already made quite a bit of progress outside of git,
 but I'm choosing to upload now so I can work on it away from
 home.
 
-Just gonna say this is like version 0.1.
+Version 0.2
 
 CURRENT FEATURES:
 - Grid workspace
@@ -17,6 +17,7 @@ CURRENT FEATURES:
   - Deletion of trigger clusters
 - Action bar (up top)
   - Save maps to .cfg fomrat along with map folders
+  - Select play starting position
  
 PLANNED FEATURES:
 - Loading maps
@@ -24,4 +25,3 @@ PLANNED FEATURES:
 - Zooming in/out on workspace
 - Panning on workspace
 - Select map music
-- Select play starting position
