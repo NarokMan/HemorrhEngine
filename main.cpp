@@ -7,6 +7,7 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <vector>
 #include <string>
+#include <optional>
 
 #define TARGET_FPS 20
 
@@ -158,11 +159,25 @@ int write_all_triggers(std::string map_name, std::vector<struct trigger_cluster>
 
 }
 
-std::string text_query(SDL_Renderer* renderer, std::string prompt) {
+std::optional <std::string> text_query(SDL_Renderer* renderer, std::string prompt) {
 
     bool finished = false;
-
     std::string input = "";
+    
+    TTF_Font* font = TTF_OpenFont("ui/TypeLightSans.ttf", 50);
+    SDL_Surface* temp_surface = TTF_RenderText_Solid(font, prompt.c_str(), prompt.length(), (SDL_Color) {255, 255, 255, 255});
+    SDL_Texture* prompt_texture = SDL_CreateTextureFromSurface(renderer, temp_surface);
+    SDL_DestroySurface(temp_surface);
+    
+    float prompt_size_x;
+    float prompt_size_y;
+    SDL_GetTextureSize(prompt_texture, &prompt_size_x, &prompt_size_y);
+    SDL_FRect prompt_rect = {WINDOW_WIDTH / 2 - prompt_size_x / 2, WINDOW_HEIGHT * 2 / 5, prompt_size_x, prompt_size_y};
+    
+    float input_size_x;
+    float input_size_y;
+    SDL_FRect input_rect;
+    SDL_Texture* input_texture;
 
 	while (!finished) {
 
@@ -172,26 +187,58 @@ std::string text_query(SDL_Renderer* renderer, std::string prompt) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
             switch (event.type) {
+				
+			case SDL_EVENT_QUIT:
+				
+				TTF_CloseFont(font);
+				
+				SDL_Quit();
+				break;
 
 			case SDL_EVENT_KEY_UP:
 
 				printf("Key up: %c\n", event.key.key);
                 if (event.key.scancode >= 4 && event.key.scancode < 40) {
-                    input = input + (char)event.key.key;
+                    input = input + (char)(event.key.key - 32);
                     printf("%s", input.c_str());
-                }
+                } else if (event.key.scancode == SDL_SCANCODE_SPACE) { 
+					input = input + (char)95;
+                    printf("%s", input.c_str());
+                } else if (event.key.scancode == SDL_SCANCODE_RETURN) {
+					TTF_CloseFont(font);
+					
+					if (input.empty())
+						return std::nullopt;
+					
+					return input;
+				} else if (event.key.scancode == SDL_SCANCODE_BACKSPACE) {
+					if (!input.empty())
+						input.pop_back();
+				}
+				
+				temp_surface = TTF_RenderText_Solid(font, input.c_str(), input.length(), (SDL_Color) {255, 255, 255, 255});
+				SDL_DestroyTexture(input_texture);
+				input_texture = SDL_CreateTextureFromSurface(renderer, temp_surface);
+				SDL_DestroySurface(temp_surface);
+				SDL_GetTextureSize(input_texture, &input_size_x, &input_size_y);
+				input_rect = (SDL_FRect) {WINDOW_WIDTH / 2 - input_size_x / 2, WINDOW_HEIGHT / 2, input_size_x, input_size_y};
 
                 break;
 
             }
+            
 		}
-
-		//SDL_Log(input.c_str());
+		
+		SDL_RenderTexture(renderer, prompt_texture, NULL, &prompt_rect);
+		SDL_RenderTexture(renderer, input_texture, NULL, &input_rect);
+		
         SDL_RenderPresent(renderer);
 
 	}
 
 	SDL_RenderPresent(renderer);
+	
+	TTF_CloseFont(font);
 
     return input;
 
@@ -238,6 +285,10 @@ int active_trigger_cluster = -1;
 
 std::vector<struct collision_cluster> collision_cluster_array;
 std::vector<struct trigger_cluster> trigger_cluster_array;
+
+int player_start_angle = 0;
+int player_start_x = 0;
+int player_start_y = 0;
 
 int frameStart = 0;
 
@@ -473,10 +524,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                 case 8:
 
-					text_query(renderer, "Enter map name: ");
+					auto result = text_query(renderer, "Enter map name: ");
+					if (!result.has_value()) {
+						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
+						break;
+					}
 
                     SDL_Log(ANSI_COLOR_GREEN "Creating map folder..." ANSI_COLOR_RESET);
-                    map_name = "map1";
+                    map_name = result.value();
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
 
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
