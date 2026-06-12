@@ -70,10 +70,10 @@ int write_cfg(std::string map_name,
 	}
 
     fprintf(file, "\nMUSIC - PLACED INSIDE THE MUSIC FOLDER\n");
-	fprintf(file, "music/%s\n", music_file.c_str());
+	fprintf(file, "music/%s.mp3\n", music_file.c_str());
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
-	fprintf(file, "%d %d %d", playerx, playery, player_angle);
+	fprintf(file, "%d %d %d", playerx, playery, -1 * player_angle);
 	
 	fclose(file);
 
@@ -319,6 +319,8 @@ int player_start_angle = 0;
 int player_start_x = 800;
 int player_start_y = 450;
 
+std::string map_music_file = "";
+
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 {
 
@@ -459,7 +461,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                 switch (active_tool) {
 
-                case 0: // Create new collision cluster
+                case 0: // Create new collision cluster (tool)
 
 					temp_cluster = collision_cluster();
 					temp_cluster.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
@@ -471,7 +473,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 1: // Delete selected collision cluster
+                case 1: // Delete selected collision cluster (tool)
 
 					if (active_cluster != -1)
 					    collision_cluster_array.erase(collision_cluster_array.begin() + active_cluster);
@@ -481,7 +483,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 2: // Add new collision node to selected cluster
+                case 2: // Add new collision node to selected cluster (tool)
 
 					if (active_cluster != -1) {
 
@@ -494,7 +496,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 4: // Create new trigger cluster
+                case 4: // Create new trigger cluster (tool)
 
                     temp_trigger = trigger_cluster();
                     temp_trigger.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
@@ -506,7 +508,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 5: // Delete selected trigger cluster
+                case 5: // Delete selected trigger cluster (tool)
 
                     if (active_trigger_cluster != -1)
                         trigger_cluster_array.erase(trigger_cluster_array.begin() + active_trigger_cluster);
@@ -516,7 +518,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 6: // Add node to trigger cluster
+                case 6: // Add node to trigger cluster (tool)
 
                     if (active_trigger_cluster != -1) {
 
@@ -529,7 +531,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
 
-                case 12: // Change player starting position / angle
+                case 12: // Change player starting position / angle (tool)
 						// Selects player position on first click, player angle on second.
                 
 					// 0 if the user is selecting the x/y location. Will switch to false when angle is being selected
@@ -567,7 +569,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                 switch (active_tool) {
 
-                case 8: { // Save da map, used brackets to keep auto's scope isolated here
+                case 8: { // Save da map, used brackets to keep auto's scope isolated here (action)
 
 					auto result = text_query(renderer, "Enter map name to save to:");
 					if (!result.has_value()) {
@@ -580,14 +582,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
 
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, "doom3.mp3", (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 				}
 
                     break;
                     
-                 case 9: { // Load da map
+                 case 9: { // Load da map (action)
                  
 					auto result = text_query(renderer, "Enter map to load:");
                  
@@ -597,9 +599,16 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					
 				}
 				
-				case 11: { // Pick music file
+				case 11: { // Pick music file (action)
 					
 					auto result = text_query(renderer, "Enter MP3 file to load as this map's music file.");
+					if (!result.has_value()) {
+						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
+						break;
+					}
+					
+					map_music_file = result.value();
+					SDL_Log(ANSI_COLOR_GREEN "Changed music file to: %s" ANSI_COLOR_RESET, map_music_file);
 					
 					break;
 					
@@ -607,7 +616,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					
 				}
 				
-				case 12: // Pick player starting location
+				case 12: // Pick player starting location (action)
 				
 					player_position_selection_state = true;
 					
