@@ -3,7 +3,7 @@ I've already made quite a bit of progress outside of git,
 but I'm choosing to upload now so I can work on it away from
 home.
 
-Version 0.2
+Version 0.3
 
 CURRENT FEATURES:
 - Grid workspace
@@ -15,6 +15,8 @@ CURRENT FEATURES:
   - Creation of trigger nodes
   - Deletion of collision clusters
   - Deletion of trigger clusters
+  - Select trigger destination map
+  - Select map music file
 - Action bar (up top)
   - Save maps to .cfg fomrat along with map folders
   - Select play starting position
@@ -24,4 +26,3 @@ PLANNED FEATURES:
 - Running maps
 - Zooming in/out on workspace
 - Panning on workspace
-- Select map music
