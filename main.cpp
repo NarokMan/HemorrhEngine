@@ -20,9 +20,17 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 3
+#define EDITOR_IMAGES 4
 
 FILE* file;
+
+enum collision_type {
+	
+	NONE = 0,
+	INSIDE = 1,
+	OUTSIDE = 2
+	
+};
 
 struct ui_button {
 
@@ -39,6 +47,7 @@ struct node {
 struct collision_cluster {
 
     std::vector<struct node> node_array;
+    enum collision_type collision;    
 
 };
 
@@ -62,7 +71,7 @@ int write_cfg(std::string map_name,
 
     fprintf(file, "CLUSTERS %d - NUMBER OF CLUSTERS. BELOW IS EACH CLUSTER CSV AND ITS COLLISION TYPE (0 = NO COLLISION, 1 AND 2 FACE OPPOSITE WAYS)\n", (int)cluster_array.size());
 	for (int i = 0; i < cluster_array.size(); i++) {
-		fprintf(file, "clusters/cluster_%d.csv 0\n", i + 1);
+		fprintf(file, "clusters/cluster_%d.csv %d\n", i + 1, cluster_array[i].collision);
 	}
 
     fprintf(file, "\nTRIGGERS %d - NUMBER OF TRIGGERS. BELOW IS EACH TRIGGER CSV AND ITS DESTINATION\n", (int)trigger_array.size());
@@ -300,10 +309,12 @@ MIX_Mixer* mixer = NULL;
 char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/hemorrhage_actionbar.png",
 	"ui/hemorrhage_toolbar.png",
-	"ui/player_start_pos.png"
+	"ui/player_start_pos.png",
+	"ui/arrow.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
     NULL,
     NULL,
     NULL
@@ -468,6 +479,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                 case 0: // Create new collision cluster (tool)
 
 					temp_cluster = collision_cluster();
+					temp_cluster.collision = INSIDE;
 					temp_cluster.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
                     collision_cluster_array.push_back(temp_cluster);
                     SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
@@ -574,7 +586,28 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                 switch (active_tool) {
 					
-				case 7: // Select trigger destination (action)
+				case 3: // Switch collision type for current cluster (action)
+				
+					if (active_cluster != -1)
+						switch (collision_cluster_array[active_cluster].collision) {
+							
+						case NONE:
+							collision_cluster_array[active_cluster].collision = INSIDE;
+							break;
+						
+						case INSIDE:
+							collision_cluster_array[active_cluster].collision = OUTSIDE;
+							break;
+							
+						case OUTSIDE:
+							collision_cluster_array[active_cluster].collision = NONE;
+							break;
+							
+						}
+				
+					break;
+					
+				case 7: // Select trigger destination for current trigger cluster (action)
 						
 				if (active_trigger_cluster != -1) {
 						
@@ -758,9 +791,56 @@ SDL_AppResult SDL_AppIterate(void* appstate)
                 }
                 else
                     SDL_RenderLine(renderer, collision_cluster_array[i].node_array[j - 1].x, collision_cluster_array[i].node_array[j - 1].y, collision_cluster_array[i].node_array[j].x, collision_cluster_array[i].node_array[j].y);
-
+			
             }
+            
         }
+        
+        // Drawing the collision-type-indicating arrows
+        if (collision_cluster_array[i].node_array.size() > 1 && collision_cluster_array[i].collision != NONE) {
+			
+			SDL_FRect arrow_rect;
+			SDL_GetTextureSize(ui_textures[3], &arrow_rect.w, &arrow_rect.h);
+			
+			float distance_between_points_y;
+			float distance_between_points_x;
+			float angle;
+			SDL_FPoint center_point = {0, 0};
+			
+			// Draw the arrows representing the collision type
+			for (int j = 0; j < collision_cluster_array[i].node_array.size() - 1; j++) {
+					
+				distance_between_points_y = collision_cluster_array[i].node_array[j + 1].y - collision_cluster_array[i].node_array[j].y;
+				distance_between_points_x = collision_cluster_array[i].node_array[j + 1].x - collision_cluster_array[i].node_array[j].x;
+				
+				arrow_rect.x = collision_cluster_array[i].node_array[j + 1].x - distance_between_points_x / 2;
+				arrow_rect.y = collision_cluster_array[i].node_array[j + 1].y - distance_between_points_y / 2;
+				
+				if (collision_cluster_array[i].collision == INSIDE)
+					angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 - 90;
+				else if (collision_cluster_array[i].collision == OUTSIDE)
+					angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 + 90;
+				
+				SDL_RenderTextureRotated(renderer, ui_textures[3], NULL, &arrow_rect, angle, &center_point, SDL_FLIP_NONE);
+
+			}
+			
+			// Draw the last arrow on the line between the first and last node
+			
+			distance_between_points_y = collision_cluster_array[i].node_array[0].y - collision_cluster_array[i].node_array[collision_cluster_array[i].node_array.size() - 1].y;
+			distance_between_points_x = collision_cluster_array[i].node_array[0].x - collision_cluster_array[i].node_array[collision_cluster_array[i].node_array.size() - 1].x;
+			
+			arrow_rect.x = collision_cluster_array[i].node_array[0].x - distance_between_points_x / 2;
+			arrow_rect.y = collision_cluster_array[i].node_array[0].y - distance_between_points_y / 2;
+			
+			if (collision_cluster_array[i].collision == INSIDE)
+				angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 - 90;
+			else if (collision_cluster_array[i].collision == OUTSIDE)
+				angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 + 90;
+			
+			SDL_RenderTextureRotated(renderer, ui_textures[3], NULL, &arrow_rect, angle, &center_point, SDL_FLIP_NONE);
+			
+		}
 
     }
 
