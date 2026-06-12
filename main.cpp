@@ -45,6 +45,7 @@ struct collision_cluster {
 struct trigger_cluster {
 
     std::vector<struct node> node_array;
+    std::string destination_map_name;
 
 };
 
@@ -66,7 +67,10 @@ int write_cfg(std::string map_name,
 
     fprintf(file, "\nTRIGGERS %d - NUMBER OF TRIGGERS. BELOW IS EACH TRIGGER CSV AND ITS DESTINATION\n", (int)trigger_array.size());
 	for (int i = 0; i < trigger_array.size(); i++) {
-		fprintf(file, "triggers/trigger_%d.csv 0\n", i + 1);
+		if (!trigger_array[i].destination_map_name.empty())
+			fprintf(file, "triggers/trigger_%d.csv %s\n", i + 1, trigger_array[i].destination_map_name.c_str());
+		else
+			fprintf(file, "triggers/trigger_%d.csv 0\n", i + 1);
 	}
 
     fprintf(file, "\nMUSIC - PLACED INSIDE THE MUSIC FOLDER\n");
@@ -499,8 +503,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                 case 4: // Create new trigger cluster (tool)
 
                     temp_trigger = trigger_cluster();
+                    temp_trigger.destination_map_name = "";
                     temp_trigger.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
-                    trigger_cluster_array.push_back(temp_trigger);
+                    trigger_cluster_array.push_back(temp_trigger); // Create an initial node to start the cluster off
                     SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
                     active_trigger_cluster = trigger_cluster_array.size() - 1;
@@ -568,6 +573,23 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				}
 
                 switch (active_tool) {
+					
+				case 7: // Select trigger destination (action)
+						
+				if (active_trigger_cluster != -1) {
+						
+					auto result = text_query(renderer, "Enter current trigger's destination's map name:");
+					if (!result.has_value()) {
+						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
+						break;
+					}
+
+					// Set the trigger's destination to whatever the user entered
+					trigger_cluster_array[active_trigger_cluster].destination_map_name = result.value();
+                    
+				} else { SDL_Log("No trigger actively selected."); }
+
+                    break;
 
                 case 8: { // Save da map, used brackets to keep auto's scope isolated here (action)
 
