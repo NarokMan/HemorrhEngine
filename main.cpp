@@ -58,6 +58,20 @@ struct trigger_cluster {
 
 };
 
+struct map_data {
+	
+	int number_of_clusters;
+	std::vector<struct collision_cluster> clusters;
+	
+	int number_of_triggers;
+	std::vector<struct trigger_cluster> triggers;
+	
+	int player_starting_x;
+	int player_starting_y;
+	int player_starting_angle;
+	
+};
+
 int write_cfg(std::string map_name, 
     std::vector<struct collision_cluster> cluster_array, 
     std::vector<struct trigger_cluster> trigger_array,
@@ -82,8 +96,11 @@ int write_cfg(std::string map_name,
 			fprintf(file, "triggers/trigger_%d.csv 0\n", i + 1);
 	}
 
-    fprintf(file, "\nMUSIC - PLACED INSIDE THE MUSIC FOLDER\n");
-	fprintf(file, "music/%s.mp3\n", music_file.c_str());
+    if (!music_file.empty()) {
+		fprintf(file, "\nMUSIC 1 - PLACED INSIDE THE MUSIC FOLDER\n");
+		fprintf(file, "music/%s.mp3\n", music_file.c_str());
+	} else
+		fprintf(file, "\nMUSIC 0 - PLACED INSIDE THE MUSIC FOLDER\n");
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
 	fprintf(file, "%d %d %d", playerx, playery, -1 * player_angle);
@@ -112,6 +129,11 @@ int write_cluster_file(std::string filename, struct collision_cluster cluster) {
 
 	return 0;
 
+}
+
+struct collision_cluster read_cluster_file(std::string filename) {
+	
+	
 }
 
 int write_all_clusters(std::string map_name, std::vector<struct collision_cluster> cluster_array) {
@@ -223,16 +245,15 @@ std::optional <std::string> text_query(SDL_Renderer* renderer, std::string promp
 
 			case SDL_EVENT_KEY_UP:
 
-				printf("Key up: %c\n", event.key.key);
-                if (event.key.scancode >= 4 && event.key.scancode < 30) { // Letters
+				if (event.key.scancode >= 4 && event.key.scancode < 30) { // Letters
                     input = input + (char)(event.key.key - 32);
-                    printf("%s", input.c_str());
+                    SDL_Log("Current string: %s", input.c_str());
                 } else if (event.key.scancode >= 30 && event.key.scancode < 40) { // Numbers
                     input = input + (char)(event.key.key);
-                    printf("%s", input.c_str());
+                    SDL_Log("Current string: %s", input.c_str());
                 } else if (event.key.scancode == SDL_SCANCODE_SPACE) { // Space
 					input = input + (char)95;
-                    printf("%s", input.c_str());
+                    SDL_Log("Current string: %s", input.c_str());
                 } else if (event.key.scancode == SDL_SCANCODE_RETURN) {
 					TTF_CloseFont(font);
 					
@@ -299,6 +320,99 @@ int make_map_dir(std::string map_name) {
 
     return 0;
 
+}
+
+struct map_data get_map_data(std::string map_name) {
+
+	std::string cfg_name = "maps/";
+	cfg_name = cfg_name + map_name + "/" + map_name + ".cfg";
+	
+	SDL_Log("Loading map %s...", map_name.c_str());
+	SDL_Log("Finding cfg file %s...", cfg_name.c_str());
+	
+	file = fopen(cfg_name.c_str(), "r");
+	char line[256];
+	int num_clusters;
+	char cluster_files[1024][256]; // all the cluster csv files
+	int collision[1024]; // all the collision types for the clusters
+	
+	int num_triggers;
+	char trigger_files[1024][256]; // all the cluster csv files
+	char trigger_destinations[1024][256]; // all the destinations for the triggerss
+	
+	int music_questionmark;
+	char music_file[256]; // all the music files
+	
+	int player_x;
+	int player_y;
+	int player_angle;
+	
+	SDL_Log("Reading lines...");
+	
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "CLUSTERS %d", &num_clusters);
+	SDL_Log("Number of clusters: %d", num_clusters);
+	
+	// Getting cluster file names and collision types
+	for (int i = 0; i < num_clusters; i++) {
+		
+		fgets(line, sizeof(line), file);
+		SDL_Log(line);
+		sscanf(line, "%255s %d", cluster_files[i], &collision[i]);
+		SDL_Log("Cluster %d: %s has collision type %d", i, cluster_files[i], collision[i]);
+		
+	}
+	
+	fgets(line, sizeof(line), file);
+	
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "TRIGGERS %d", &num_triggers);
+	SDL_Log("Number of triggers: %d", num_triggers);
+	
+	// Getting cluster file names and collision types
+	for (int i = 0; i < num_triggers; i++) {
+		
+		fgets(line, sizeof(line), file);
+		SDL_Log(line);
+		sscanf(line, "%255s %s", trigger_files[i], trigger_destinations[i]);
+		SDL_Log("Trigger %d: %s has destination %s", i, trigger_files[i], trigger_destinations[i]);
+		
+	}
+	
+	fgets(line, sizeof(line), file);
+
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "MUSIC %d", &music_questionmark);
+	if (music_questionmark == 0)
+		SDL_Log("There will be no music. :(");
+	else {
+		sscanf(line, "%s", music_file);
+		SDL_Log("There will be music: %s", music_file);
+	}
+	
+	fgets(line, sizeof(line), file);
+	fgets(line, sizeof(line), file);
+	
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "%d %d %d", &player_x, &player_y, &player_angle);
+	SDL_Log("The player will start at %d, %d and be oriented %d degrees.", player_x, player_y, player_angle);
+	
+	fclose(file);
+	
+	SDL_Log("Making new map_data...");
+	struct map_data new_map_data;
+	new_map_data.number_of_clusters = num_clusters;
+	new_map_data.number_of_triggers = num_triggers;
+	new_map_data.player_starting_x = player_x;
+	new_map_data.player_starting_y = player_y;
+	new_map_data.player_starting_angle = player_angle;
+	
+	return new_map_data;
+	
 }
 
 /* We will use this renderer to draw into this window every frame. */
@@ -648,7 +762,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                  
 					auto result = text_query(renderer, "Enter map to load:");
                  
-					// load map file here ig
+					get_map_data(result.value());
                  
 					break;
 					
