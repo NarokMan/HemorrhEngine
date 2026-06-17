@@ -187,6 +187,57 @@ std::vector<struct collision_cluster> read_all_clusters(std::string map_name, in
 	
 }
 
+struct trigger_cluster read_trigger_file(std::string filename, std::string destination) {
+	
+	SDL_Log("Getting file %s...", filename.c_str());
+	file = fopen(filename.c_str(), "r");
+	if (file == NULL) {
+		SDL_Log(ANSI_COLOR_RED "Couldn't find file: %s" ANSI_COLOR_RESET, SDL_GetError());
+	}
+		
+	struct trigger_cluster new_trigger;
+	new_trigger.destination_map_name = destination;
+		
+	char line[50];
+	float num1;
+	float num2;
+	int current_node = 0;
+	while (fgets(line, sizeof(line), file)) {
+	
+		sscanf(line, "%f, %f", &num1, &num2);
+		new_trigger.node_array.push_back({num1, num2});
+		
+	}
+	
+	fclose(file);
+	
+	return new_trigger;
+	
+}
+
+std::vector<struct trigger_cluster> read_all_triggers(std::string map_name, std::vector<std::string> destination, int num_of_clusters) {
+	
+	struct trigger_cluster temp_cluster;
+	std::string cluster_filename;
+	
+	std::vector<struct trigger_cluster> trigger_array;
+	
+	SDL_Log("Reading the trigger files of the %d triggers...", num_of_clusters);
+	for (int i = 1; i < num_of_clusters + 1; i++) {
+		
+		cluster_filename = "maps/";
+		cluster_filename = cluster_filename + map_name + "/triggers/" + map_name + "_trigger_" + std::to_string(i) + ".csv";
+
+		temp_cluster = read_trigger_file(cluster_filename, destination[i - 1]);
+
+		trigger_array.push_back(temp_cluster);
+		
+	}
+	
+	return trigger_array;
+	
+}
+
 int write_all_clusters(std::string map_name, std::vector<struct collision_cluster> cluster_array) {
 
 	std::string clusters_dir = "maps/" + map_name + "/clusters";
@@ -393,7 +444,8 @@ struct map_data get_map_data(std::string map_name) {
 	
 	int num_triggers;
 	char trigger_files[1024][256]; // all the cluster csv files
-	char trigger_destinations[1024][256]; // all the destinations for the triggerss
+	char temp_destination[256];
+	std::vector <std::string> trigger_destinations; // all the destinations for the triggers
 	
 	int music_questionmark;
 	char music_file[256]; // all the music files
@@ -431,8 +483,9 @@ struct map_data get_map_data(std::string map_name) {
 		
 		fgets(line, sizeof(line), file);
 		SDL_Log(line);
-		sscanf(line, "%255s %s", trigger_files[i], trigger_destinations[i]);
-		SDL_Log("Trigger %d: %s has destination %s", i, trigger_files[i], trigger_destinations[i]);
+		sscanf(line, "%255s %s", trigger_files[i], temp_destination);
+		trigger_destinations.push_back(std::string(temp_destination));
+		SDL_Log("Trigger %d: %s has destination %s", i, trigger_files[i], trigger_destinations[i].c_str());
 		
 	}
 	
@@ -468,6 +521,7 @@ struct map_data get_map_data(std::string map_name) {
 	
 	SDL_Log("Grabbing the clusters...");
 	new_map_data.clusters = read_all_clusters(map_name, collision, num_clusters);
+	new_map_data.triggers = read_all_triggers(map_name, trigger_destinations, num_triggers);
 	
 	return new_map_data;
 	
@@ -820,7 +874,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                  
 					auto result = text_query(renderer, "Enter map to load:");
                  
-					get_map_data(result.value());
+					struct map_data map_cfg = get_map_data(result.value());
+					collision_cluster_array = map_cfg.clusters;
+					trigger_cluster_array = map_cfg.triggers;
                  
 					break;
 					
