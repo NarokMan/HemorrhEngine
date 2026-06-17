@@ -70,6 +70,8 @@ struct map_data {
 	int player_starting_y;
 	int player_starting_angle;
 	
+	std::string music_file;
+	
 };
 
 int write_cfg(std::string map_name, 
@@ -172,12 +174,18 @@ std::vector<struct collision_cluster> read_all_clusters(std::string map_name, in
 		cluster_filename = "maps/";
 		cluster_filename = cluster_filename + map_name + "/clusters/" + map_name + "_cluster_" + std::to_string(i) + ".csv";
 		
-		if (collision[i] == 0)
+		if (collision[i - 1] == 0) {
 			temp_cluster = read_cluster_file(cluster_filename, NONE);
-		else if (collision[i] == 1)
+			SDL_Log("Cluster %d created with collision type NONE", i - 1);
+		}
+		else if (collision[i - 1] == 1) {
 			temp_cluster = read_cluster_file(cluster_filename, INSIDE);
-		else if (collision[i] == 2)
+			SDL_Log("Cluster %d created with collision type INSIDE", i - 1);
+		}
+		else if (collision[i - 1] == 2) {
 			temp_cluster = read_cluster_file(cluster_filename, OUTSIDE);
+			SDL_Log("Cluster %d created with collision type OUTSIDE", i - 1);
+		}
 		
 		cluster_array.push_back(temp_cluster);
 		
@@ -448,7 +456,7 @@ struct map_data get_map_data(std::string map_name) {
 	std::vector <std::string> trigger_destinations; // all the destinations for the triggers
 	
 	int music_questionmark;
-	char music_file[256]; // all the music files
+	char music_file[256] = ""; // all the music files
 	
 	int player_x;
 	int player_y;
@@ -522,6 +530,8 @@ struct map_data get_map_data(std::string map_name) {
 	SDL_Log("Grabbing the clusters...");
 	new_map_data.clusters = read_all_clusters(map_name, collision, num_clusters);
 	new_map_data.triggers = read_all_triggers(map_name, trigger_destinations, num_triggers);
+	
+	new_map_data.music_file = std::string(music_file);
 	
 	return new_map_data;
 	
@@ -861,7 +871,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     SDL_Log(ANSI_COLOR_GREEN "Creating map folder..." ANSI_COLOR_RESET);
                     map_name = result.value();
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
-
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
 					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
@@ -877,6 +886,10 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					struct map_data map_cfg = get_map_data(result.value());
 					collision_cluster_array = map_cfg.clusters;
 					trigger_cluster_array = map_cfg.triggers;
+					player_start_x = map_cfg.player_starting_x;
+					player_start_y = map_cfg.player_starting_y;
+					player_start_angle = map_cfg.player_starting_angle;
+					map_music_file = map_cfg.music_file;
                  
 					break;
 					
