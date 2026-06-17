@@ -131,8 +131,59 @@ int write_cluster_file(std::string filename, struct collision_cluster cluster) {
 
 }
 
-struct collision_cluster read_cluster_file(std::string filename) {
+struct collision_cluster read_cluster_file(std::string filename, enum collision_type collision) {
 	
+	SDL_Log("Getting file %s...", filename.c_str());
+	file = fopen(filename.c_str(), "r");
+	if (file == NULL) {
+		SDL_Log(ANSI_COLOR_RED "Couldn't find file: %s" ANSI_COLOR_RESET, SDL_GetError());
+	}
+		
+	struct collision_cluster new_cluster;
+	new_cluster.collision = collision;
+		
+	char line[50];
+	float num1;
+	float num2;
+	int current_node = 0;
+	while (fgets(line, sizeof(line), file)) {
+	
+		sscanf(line, "%f, %f", &num1, &num2);
+		new_cluster.node_array.push_back({num1, num2});
+		
+	}
+	
+	fclose(file);
+	
+	return new_cluster;
+	
+}
+
+std::vector<struct collision_cluster> read_all_clusters(std::string map_name, int collision[], int num_of_clusters) {
+	
+	struct collision_cluster temp_cluster;
+	std::string cluster_filename;
+	
+	std::vector<struct collision_cluster> cluster_array;
+	
+	SDL_Log("Reading the cluster files...");
+	for (int i = 1; i < num_of_clusters + 1; i++) {
+		
+		cluster_filename = "maps/";
+		cluster_filename = cluster_filename + map_name + "/clusters/" + map_name + "_cluster_" + std::to_string(i) + ".csv";
+		
+		if (collision[i] == 0)
+			temp_cluster = read_cluster_file(cluster_filename, NONE);
+		else if (collision[i] == 1)
+			temp_cluster = read_cluster_file(cluster_filename, INSIDE);
+		else if (collision[i] == 2)
+			temp_cluster = read_cluster_file(cluster_filename, OUTSIDE);
+		
+		cluster_array.push_back(temp_cluster);
+		
+	}
+	
+	return cluster_array;
 	
 }
 
@@ -142,7 +193,7 @@ int write_all_clusters(std::string map_name, std::vector<struct collision_cluste
 
 	for (int i = 0; i < cluster_array.size(); i++) {
 
-		std::string cluster_file_name = clusters_dir + "/cluster_" + std::to_string(i + 1) + ".csv";
+		std::string cluster_file_name = clusters_dir + "/" + map_name + "_cluster_" + std::to_string(i + 1) + ".csv";
 
 		if (write_cluster_file(cluster_file_name, cluster_array[i]) != 0) {
 			SDL_Log(ANSI_COLOR_RED "Error saving collision cluster %d sumn happend idk" ANSI_COLOR_RESET, i + 1);
@@ -181,7 +232,7 @@ int write_all_triggers(std::string map_name, std::vector<struct trigger_cluster>
 
     for (int i = 0; i < trigger_array.size(); i++) {
 
-        std::string cluster_file_name = clusters_dir + "/trigger_" + std::to_string(i + 1) + ".csv";
+        std::string cluster_file_name = clusters_dir + "/" + map_name + "_trigger_" + std::to_string(i + 1) + ".csv";
 
         if (write_trigger_file(cluster_file_name, trigger_array[i]) != 0) {
             SDL_Log(ANSI_COLOR_RED "Error saving trigger cluster %d sumn happend idk" ANSI_COLOR_RESET, i + 1);
@@ -331,6 +382,10 @@ struct map_data get_map_data(std::string map_name) {
 	SDL_Log("Finding cfg file %s...", cfg_name.c_str());
 	
 	file = fopen(cfg_name.c_str(), "r");
+	if (!file) {
+		SDL_Log(ANSI_COLOR_RED "Couldn't load font file: %s" ANSI_COLOR_RESET, SDL_GetError());
+	}
+	
 	char line[256];
 	int num_clusters;
 	char cluster_files[1024][256]; // all the cluster csv files
@@ -403,13 +458,16 @@ struct map_data get_map_data(std::string map_name) {
 	
 	fclose(file);
 	
-	SDL_Log("Making new map_data...");
+	SDL_Log("Making new map_data object...");
 	struct map_data new_map_data;
 	new_map_data.number_of_clusters = num_clusters;
 	new_map_data.number_of_triggers = num_triggers;
 	new_map_data.player_starting_x = player_x;
 	new_map_data.player_starting_y = player_y;
 	new_map_data.player_starting_angle = player_angle;
+	
+	SDL_Log("Grabbing the clusters...");
+	new_map_data.clusters = read_all_clusters(map_name, collision, num_clusters);
 	
 	return new_map_data;
 	
@@ -727,7 +785,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						
 					auto result = text_query(renderer, "Enter current trigger's destination's map name:");
 					if (!result.has_value()) {
-						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
+						SDL_Log(ANSI_COLOR_RED "Empty string returned. Trigger will lead nowhere.:-(" ANSI_COLOR_RESET);
 						break;
 					}
 
