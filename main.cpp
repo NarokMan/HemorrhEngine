@@ -882,14 +882,18 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                  case 9: { // Load da map (action)
                  
 					auto result = text_query(renderer, "Enter map to load:");
+					
+					if (result.has_value()) {
                  
-					struct map_data map_cfg = get_map_data(result.value());
-					collision_cluster_array = map_cfg.clusters;
-					trigger_cluster_array = map_cfg.triggers;
-					player_start_x = map_cfg.player_starting_x;
-					player_start_y = map_cfg.player_starting_y;
-					player_start_angle = map_cfg.player_starting_angle;
-					map_music_file = map_cfg.music_file;
+						struct map_data map_cfg = get_map_data(result.value());
+						collision_cluster_array = map_cfg.clusters;
+						trigger_cluster_array = map_cfg.triggers;
+						player_start_x = map_cfg.player_starting_x;
+						player_start_y = map_cfg.player_starting_y;
+						player_start_angle = map_cfg.player_starting_angle;
+						map_music_file = map_cfg.music_file;
+						
+					}
                  
 					break;
 					
