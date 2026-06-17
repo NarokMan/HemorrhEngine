@@ -21,10 +21,14 @@ CURRENT FEATURES:
   - Deletion of trigger clusters
   - Select trigger destination map
   - Select map music file
-  - Loading saved maps
 - Action bar (up top)
   - Save maps to .cfg fomrat along with map folders
   - Select play starting position
+  - Load saved maps including
+    - collision clusters
+    - trigger clusters
+    - music file name
+    - player starting position
  
 PLANNED FEATURES:
 - Running maps
