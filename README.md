@@ -3,7 +3,11 @@ I've already made quite a bit of progress outside of git,
 but I'm choosing to upload now so I can work on it away from
 home.
 
-Version 0.3
+Version 0.4
+
+Although saving and loading saved maps works now, I don't
+think it's at 1.0 yet. 1.0 will happen when I can run the 
+maps in the editor.
 
 CURRENT FEATURES:
 - Grid workspace
@@ -17,12 +21,12 @@ CURRENT FEATURES:
   - Deletion of trigger clusters
   - Select trigger destination map
   - Select map music file
+  - Loading saved maps
 - Action bar (up top)
   - Save maps to .cfg fomrat along with map folders
   - Select play starting position
  
 PLANNED FEATURES:
-- Loading maps
 - Running maps
 - Zooming in/out on workspace
 - Panning on workspace
