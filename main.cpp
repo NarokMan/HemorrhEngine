@@ -122,7 +122,7 @@ int write_cluster_file(std::string filename, struct collision_cluster cluster) {
         return -1;
 
 	for (int i = 0; i < cluster.node_array.size(); i++) {
-		fprintf(file, "%d, %d\n", (int) cluster.node_array[i].x, (int) cluster.node_array[i].y);
+		fprintf(file, "%d, %d\n", (int) cluster.node_array[i].x - 100, (int) cluster.node_array[i].y - 50);
 	}
 
 	fclose(file);
