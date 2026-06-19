@@ -27,3 +27,7 @@ CURRENT FEATURES:
 PLANNED FEATURES:
 - Zooming in/out on workspace
 - Panning on workspace
+- Texture bounding boxes
+- Texture file selection
+- Texture path saving in map cfg file
+- Puck spawn location selection
