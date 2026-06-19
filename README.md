@@ -1,13 +1,6 @@
 The editor designed to help make my new hockey game project.
-I've already made quite a bit of progress outside of git, 
-but I'm choosing to upload now so I can work on it away from
-home.
 
-Version 0.4
-
-Although saving and loading saved maps works now, I don't
-think it's at 1.0 yet. 1.0 will happen when I can run the 
-maps in the editor.
+Version 1.0 - Can run maps now inside the editor
 
 CURRENT FEATURES:
 - Grid workspace
@@ -29,8 +22,8 @@ CURRENT FEATURES:
     - trigger clusters
     - music file name
     - player starting position
+  - Running maps
  
 PLANNED FEATURES:
-- Running maps
 - Zooming in/out on workspace
 - Panning on workspace
