@@ -894,10 +894,23 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						map_music_file = map_cfg.music_file;
 						
 					}
+				
+				}
                  
 					break;
+			
+				case 10: // Run da map (action)
+				
+					SDL_Log(ANSI_COLOR_GREEN "Creating temp map folder..." ANSI_COLOR_RESET);
+                    map_name = "temp";
+                    make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
+                    SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_all_clusters(map_name, collision_cluster_array);
+					write_all_triggers(map_name, trigger_cluster_array);
+					system("./game temp");
 					
-				}
+					break;
 				
 				case 11: { // Pick music file (action)
 					
