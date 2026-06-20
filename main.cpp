@@ -105,7 +105,7 @@ int write_cfg(std::string map_name,
 		fprintf(file, "\nMUSIC 0 - PLACED INSIDE THE MUSIC FOLDER\n");
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
-	fprintf(file, "%d %d %d", playerx, playery, -1 * player_angle);
+	fprintf(file, "%d %d %d", playerx - 100, playery - 50, player_angle);
 	
 	fclose(file);
 
@@ -151,7 +151,7 @@ struct collision_cluster read_cluster_file(std::string filename, enum collision_
 	while (fgets(line, sizeof(line), file)) {
 	
 		sscanf(line, "%f, %f", &num1, &num2);
-		new_cluster.node_array.push_back({num1, num2});
+		new_cluster.node_array.push_back({num1 + 100, num2 + 50});
 		
 	}
 	
@@ -213,7 +213,7 @@ struct trigger_cluster read_trigger_file(std::string filename, std::string desti
 	while (fgets(line, sizeof(line), file)) {
 	
 		sscanf(line, "%f, %f", &num1, &num2);
-		new_trigger.node_array.push_back({num1, num2});
+		new_trigger.node_array.push_back({num1 + 100, num2 + 50});
 		
 	}
 	
@@ -274,7 +274,7 @@ int write_trigger_file(std::string filename, struct trigger_cluster cluster) {
         return -1;
 
     for (int i = 0; i < cluster.node_array.size(); i++) {
-        fprintf(file, "%d, %d\n", (int)cluster.node_array[i].x, (int)cluster.node_array[i].y);
+        fprintf(file, "%d, %d\n", (int)cluster.node_array[i].x - 100, (int)cluster.node_array[i].y - 50);
     }
 
     fclose(file);
@@ -505,6 +505,7 @@ struct map_data get_map_data(std::string map_name) {
 	if (music_questionmark == 0)
 		SDL_Log("There will be no music. :(");
 	else {
+		fgets(line, sizeof(line), file);
 		sscanf(line, "%s", music_file);
 		SDL_Log("There will be music: %s", music_file);
 	}
@@ -515,6 +516,8 @@ struct map_data get_map_data(std::string map_name) {
 	fgets(line, sizeof(line), file);
 	SDL_Log(line);
 	sscanf(line, "%d %d %d", &player_x, &player_y, &player_angle);
+	player_x += 100;
+	player_y += 50; // Accomodating for disparity between editor and executable
 	SDL_Log("The player will start at %d, %d and be oriented %d degrees.", player_x, player_y, player_angle);
 	
 	fclose(file);
