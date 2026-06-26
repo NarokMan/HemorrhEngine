@@ -20,7 +20,7 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 4
+#define EDITOR_IMAGES 6
 
 FILE* file;
 
@@ -73,6 +73,17 @@ struct map_data {
 	std::string music_file;
 	
 };
+
+// Helps with displaying coordinates correctly when zooming out or in
+int world_to_screen(float world_x, float camera_x, float zoom, float screen_center_x) {
+    float pan_x = camera_x * zoom;
+    return world_x * zoom - pan_x + screen_center_x;
+}
+
+int screen_to_world(float screen_x, float camera_x, float zoom, float screen_center_x) {
+	float pan_x = camera_x * zoom;
+    return (screen_x - screen_center_x + pan_x) / zoom;
+}
 
 int write_cfg(std::string map_name, 
     std::vector<struct collision_cluster> cluster_array, 
@@ -549,10 +560,14 @@ char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/hemorrhage_actionbar.png",
 	"ui/hemorrhage_toolbar.png",
 	"ui/player_start_pos.png",
-	"ui/arrow.png"
+	"ui/arrow.png",
+	"ui/zoom.png",
+	"ui/arrows4.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -572,6 +587,13 @@ bool player_position_selection_state = true;
 int player_start_angle = 0;
 int player_start_x = 800;
 int player_start_y = 450;
+
+float zoom_scale = 1.0;
+float zoom_factor = 1.1f;
+int zoom_center_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2;
+int zoom_center_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
+int camera_x = zoom_center_x;
+int camera_y = zoom_center_y;
 
 std::string map_music_file = "";
 
@@ -672,7 +694,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
     ui_buttons.push_back({ { 500, 0, 95, 50 } }); // load
     ui_buttons.push_back({ { 740, 0, 75, 50 } }); // run
     ui_buttons.push_back({ { 950, 0, 110, 50 } }); // music
-	ui_buttons.push_back({ { 1196, 0, 250, 50 } });
+	ui_buttons.push_back({ { 1196, 0, 250, 50 } }); // player position select
+
+	ui_buttons.push_back({ { WINDOW_WIDTH - 100, WINDOW_HEIGHT - 120, 75, 60} }); // zoom in
+	ui_buttons.push_back({ { WINDOW_WIDTH - 100, WINDOW_HEIGHT - 60, 75, 60} }); // zoom in
+	
+	ui_buttons.push_back({ { WINDOW_WIDTH - 95, WINDOW_HEIGHT - 250, 65, 42} }); // pan up
+	ui_buttons.push_back({ { WINDOW_WIDTH - 120, WINDOW_HEIGHT - 208, 55, 42} }); // pan left
+	ui_buttons.push_back({ { WINDOW_WIDTH - 60, WINDOW_HEIGHT - 208, 55, 42} }); // pan right
+	ui_buttons.push_back({ { WINDOW_WIDTH - 95, WINDOW_HEIGHT - 166, 65, 42} }); // pan down
 
     if (ui_buttons.empty()) {
         SDL_Log(ANSI_COLOR_RED "Failed to allocate for buttons. %s" ANSI_COLOR_RESET, SDL_GetError());
@@ -711,7 +741,16 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			
 			SDL_Log("Mouse: %d, %d", mouse_x, mouse_y);
 			
-            if (mouse_x > GRID_LEFT_MARGIN && mouse_y > GRID_UPPER_MARGIN) {
+			for (int i = 0; i < ui_buttons.size(); i++) {
+				if (mouse_x >= ui_buttons[i].rect.x && mouse_x <= ui_buttons[i].rect.x + ui_buttons[i].rect.w &&
+					mouse_y >= ui_buttons[i].rect.y && mouse_y <= ui_buttons[i].rect.y + ui_buttons[i].rect.h) {
+					active_tool = i;
+					SDL_Log("Clicked button %d of %d", i, ui_buttons.size() - 1);
+					break;
+				}
+			}
+			
+            if (mouse_x > GRID_LEFT_MARGIN && mouse_y > GRID_UPPER_MARGIN && !(mouse_x > WINDOW_WIDTH - 120 && mouse_y > WINDOW_HEIGHT - 250)) {
 
                 switch (active_tool) {
 
@@ -719,7 +758,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 					temp_cluster = collision_cluster();
 					temp_cluster.collision = INSIDE;
-					temp_cluster.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
+					temp_cluster.node_array.push_back({ 
+						(float)screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 
+						(float)screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
                     collision_cluster_array.push_back(temp_cluster);
                     SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
 
@@ -742,7 +783,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 					if (active_cluster != -1) {
 
-                        collision_cluster_array[active_cluster].node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
+                        collision_cluster_array[active_cluster].node_array.push_back({ 
+							(float)screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 
+							(float)screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
                         SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
                 
 				    }
@@ -755,7 +798,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     temp_trigger = trigger_cluster();
                     temp_trigger.destination_map_name = "";
-                    temp_trigger.node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
+                    temp_trigger.node_array.push_back({ 
+						(float)screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 
+						(float)screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
                     trigger_cluster_array.push_back(temp_trigger); // Create an initial node to start the cluster off
                     SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
@@ -778,7 +823,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     if (active_trigger_cluster != -1) {
 
-                        trigger_cluster_array[active_trigger_cluster].node_array.push_back({ (float)mouse_x - mouse_x % 10, (float)mouse_y - mouse_y % 10 });
+                        trigger_cluster_array[active_trigger_cluster].node_array.push_back({ 
+							(float)screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 
+							(float)screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
                         SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
                     }
@@ -813,15 +860,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
             }
             else {
-
-				for (int i = 0; i < ui_buttons.size(); i++) {
-					if (mouse_x >= ui_buttons[i].rect.x && mouse_x <= ui_buttons[i].rect.x + ui_buttons[i].rect.w &&
-						mouse_y >= ui_buttons[i].rect.y && mouse_y <= ui_buttons[i].rect.y + ui_buttons[i].rect.h) {
-						active_tool = i;
-						SDL_Log("Clicked button %d", i);
-						break;
-					}
-				}
 
                 switch (active_tool) {
 					
@@ -937,6 +975,44 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					player_position_selection_state = true;
 					
 					break;
+					
+				case 13: // Zoom in (action)
+				
+					zoom_scale *= 1.5;
+					SDL_Log("Zoom increased to %f", zoom_scale);
+				
+					break;
+					
+				case 14: // Zoom out (action)
+				
+					zoom_scale /= 1.5;
+					SDL_Log("Zoom lowered to %f", zoom_scale);
+					
+					break;
+					
+				case 15: // Pan up
+				
+					camera_y -= 100;
+					
+					break;
+					
+				case 16: // Pan left
+				
+					camera_x -= 100;
+					
+					break;
+					
+				case 17: // Pan right
+				
+					camera_x += 100;
+					
+					break;
+					
+				case 18: // Pan up
+				
+					camera_y += 100;
+					
+					break;
 
                 }
             }
@@ -1004,33 +1080,35 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
     SDL_RenderClear(renderer);
 
-    for (int i = GRID_UPPER_MARGIN; i < 1600; i += 100) {
+	// Draw horizontal workspace gridlines
+    for (float i = GRID_UPPER_MARGIN; i < WINDOW_HEIGHT; i += 100 * zoom_scale) {
 
         SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-        for (int j = 0; j < 100; j += 10) {
-
+        for (float j = 0; j < 100; j += 10 * zoom_scale)
             SDL_RenderLine(renderer, 0, i + j, WINDOW_WIDTH, i + j);
-            SDL_RenderLine(renderer, i + j - 50, 0, i + j - 50, WINDOW_HEIGHT);
 
-        }
+		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, 0, i + 50, WINDOW_WIDTH, i + 50);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
         SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
-        SDL_RenderLine(renderer, i - 50, 0, i - 50, WINDOW_HEIGHT);
-
-        SDL_SetRenderDrawColorFloat(renderer, 0.8, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, 0, i + 50, WINDOW_WIDTH, i + 50);
-        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
 
     }
+    
+    // Draw vertical workspace gridlines
+    for (float i = GRID_LEFT_MARGIN; i < WINDOW_WIDTH + 50; i += 100 * zoom_scale) { // the 50 here is just a bit extra so the grid lines get to the edge
 
-    SDL_FRect actionbar_rect = { 0, 0, WINDOW_WIDTH, 50 };
-    SDL_FRect toolbar_rect = { 0, 0, 100, WINDOW_HEIGHT };
-    SDL_FRect player_start_rect = { (float) player_start_x - 50, (float) player_start_y - 50, 100, 100 };
-    SDL_FPoint player_start_rotation_point = { 50, 50 };
-    SDL_RenderTexture(renderer, ui_textures[0], NULL, &actionbar_rect);
-    SDL_RenderTexture(renderer, ui_textures[1], NULL, &toolbar_rect);
-    SDL_RenderTextureRotated(renderer, ui_textures[2], NULL, &player_start_rect, player_start_angle, &player_start_rotation_point, SDL_FLIP_NONE);
+        SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+        for (float j = 0; j < 100; j += 10 * zoom_scale)
+            SDL_RenderLine(renderer, i + j - 50, 0, i + j - 50, WINDOW_HEIGHT);
+
+		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
+
+        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, i - 50, 0, i - 50, WINDOW_HEIGHT);
+
+    }
 
     // This for loop is where the program draws the collision clusters.
     for (int i = 0; i < collision_cluster_array.size(); i++) {
@@ -1042,16 +1120,27 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             else // otherwise, use red
                 SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
 
-            SDL_FRect node_rect = { collision_cluster_array[i].node_array[j].x - 5, collision_cluster_array[i].node_array[j].y - 5, 10, 10 };
+            SDL_FRect node_rect = { 
+				(float) world_to_screen(collision_cluster_array[i].node_array[j].x, camera_x, zoom_scale, zoom_center_x) - 5, 
+				(float) world_to_screen(collision_cluster_array[i].node_array[j].y, camera_y, zoom_scale, zoom_center_y) - 5, 
+				10, 10 };
             SDL_RenderRect(renderer, &node_rect);
             if (collision_cluster_array[i].node_array.size() > 0) {
 
                 if (j == 0) {
                     int array_size = collision_cluster_array[i].node_array.size();
-                    SDL_RenderLine(renderer, collision_cluster_array[i].node_array[array_size - 1].x, collision_cluster_array[i].node_array[array_size - 1].y, collision_cluster_array[i].node_array[0].x, collision_cluster_array[i].node_array[0].y);
+                    SDL_RenderLine(renderer, 
+						(float) world_to_screen(collision_cluster_array[i].node_array[array_size - 1].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[array_size - 1].y, camera_y, zoom_scale, zoom_center_y), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[0].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[0].y, camera_y, zoom_scale, zoom_center_y));
                 }
                 else
-                    SDL_RenderLine(renderer, collision_cluster_array[i].node_array[j - 1].x, collision_cluster_array[i].node_array[j - 1].y, collision_cluster_array[i].node_array[j].x, collision_cluster_array[i].node_array[j].y);
+                    SDL_RenderLine(renderer, 
+						(float) world_to_screen(collision_cluster_array[i].node_array[j - 1].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[j - 1].y, camera_y, zoom_scale, zoom_center_y), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[j].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(collision_cluster_array[i].node_array[j].y, camera_y, zoom_scale, zoom_center_y));
 			
             }
             
@@ -1074,8 +1163,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 				distance_between_points_y = collision_cluster_array[i].node_array[j + 1].y - collision_cluster_array[i].node_array[j].y;
 				distance_between_points_x = collision_cluster_array[i].node_array[j + 1].x - collision_cluster_array[i].node_array[j].x;
 				
-				arrow_rect.x = collision_cluster_array[i].node_array[j + 1].x - distance_between_points_x / 2;
-				arrow_rect.y = collision_cluster_array[i].node_array[j + 1].y - distance_between_points_y / 2;
+				arrow_rect.x = world_to_screen(collision_cluster_array[i].node_array[j + 1].x - distance_between_points_x / 2, camera_x, zoom_scale, zoom_center_x);
+				arrow_rect.y = world_to_screen(collision_cluster_array[i].node_array[j + 1].y - distance_between_points_y / 2, camera_y, zoom_scale, zoom_center_y);
 				
 				if (collision_cluster_array[i].collision == INSIDE)
 					angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 - 90;
@@ -1091,8 +1180,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 			distance_between_points_y = collision_cluster_array[i].node_array[0].y - collision_cluster_array[i].node_array[collision_cluster_array[i].node_array.size() - 1].y;
 			distance_between_points_x = collision_cluster_array[i].node_array[0].x - collision_cluster_array[i].node_array[collision_cluster_array[i].node_array.size() - 1].x;
 			
-			arrow_rect.x = collision_cluster_array[i].node_array[0].x - distance_between_points_x / 2;
-			arrow_rect.y = collision_cluster_array[i].node_array[0].y - distance_between_points_y / 2;
+			arrow_rect.x = world_to_screen(collision_cluster_array[i].node_array[0].x - distance_between_points_x / 2, camera_x, zoom_scale, zoom_center_x);
+			arrow_rect.y = world_to_screen(collision_cluster_array[i].node_array[0].y - distance_between_points_y / 2, camera_y, zoom_scale, zoom_center_y);
 			
 			if (collision_cluster_array[i].collision == INSIDE)
 				angle = SDL_atan2f(distance_between_points_y, distance_between_points_x) * 180 / 3.14 - 90;
@@ -1116,21 +1205,51 @@ SDL_AppResult SDL_AppIterate(void* appstate)
             else // otherwise, use blue
                 SDL_SetRenderDrawColorFloat(renderer, 0, 0, 1, SDL_ALPHA_OPAQUE_FLOAT);
 
-            SDL_FRect node_rect = { trigger_cluster_array[i].node_array[j].x - 5, trigger_cluster_array[i].node_array[j].y - 5, 10, 10 };
+            SDL_FRect node_rect = { 
+				(float) world_to_screen(trigger_cluster_array[i].node_array[j].x, camera_x, zoom_scale, zoom_center_x) - 5, 
+				(float) world_to_screen(trigger_cluster_array[i].node_array[j].y, camera_y, zoom_scale, zoom_center_y) - 5, 
+				10, 10 };
             SDL_RenderRect(renderer, &node_rect);
             if (trigger_cluster_array[i].node_array.size() > 0) {
 
                 if (j == 0) {
                     int array_size = trigger_cluster_array[i].node_array.size();
-                    SDL_RenderLine(renderer, trigger_cluster_array[i].node_array[array_size - 1].x, trigger_cluster_array[i].node_array[array_size - 1].y, trigger_cluster_array[i].node_array[0].x, trigger_cluster_array[i].node_array[0].y);
+                    SDL_RenderLine(renderer, 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[array_size - 1].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[array_size - 1].y, camera_y, zoom_scale, zoom_center_y), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[0].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[0].y, camera_y, zoom_scale, zoom_center_y));
                 }
                 else
-                    SDL_RenderLine(renderer, trigger_cluster_array[i].node_array[j - 1].x, trigger_cluster_array[i].node_array[j - 1].y, trigger_cluster_array[i].node_array[j].x, trigger_cluster_array[i].node_array[j].y);
+                    SDL_RenderLine(renderer, 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[j - 1].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[j - 1].y, camera_y, zoom_scale, zoom_center_y), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[j].x, camera_x, zoom_scale, zoom_center_x), 
+						(float) world_to_screen(trigger_cluster_array[i].node_array[j].y, camera_y, zoom_scale, zoom_center_y));
 
             }
         }
 
     }
+    
+    // Draw UI overlay last
+    SDL_FRect actionbar_rect = { 0, 0, WINDOW_WIDTH, 50 };
+    SDL_FRect toolbar_rect = { 0, 0, 100, WINDOW_HEIGHT };
+    SDL_FRect player_start_rect = { 
+		(float) world_to_screen(player_start_x, camera_x, zoom_scale, zoom_center_x) - 50 * zoom_scale, 
+		(float) world_to_screen(player_start_y, camera_y, zoom_scale, zoom_center_y) - 50 * zoom_scale,
+		100 * zoom_scale, 
+		100 * zoom_scale };
+    SDL_FPoint player_start_rotation_point = { player_start_rect.w / 2, player_start_rect.h / 2 };
+    SDL_RenderTexture(renderer, ui_textures[0], NULL, &actionbar_rect);
+    SDL_RenderTexture(renderer, ui_textures[1], NULL, &toolbar_rect);
+    SDL_RenderTextureRotated(renderer, ui_textures[2], NULL, &player_start_rect, player_start_angle, &player_start_rotation_point, SDL_FLIP_NONE);
+    
+    SDL_FRect zoom_rect = { WINDOW_WIDTH - 100, WINDOW_HEIGHT - 120, 75, 120 };
+	SDL_RenderTexture(renderer, ui_textures[4], NULL, &zoom_rect);
+	
+	SDL_FRect pan_rect = { WINDOW_WIDTH - 125, zoom_rect.y - 130, 125, 130 };
+	SDL_RenderTexture(renderer, ui_textures[5], NULL, &pan_rect);
 
 
     if (active_tool != -1) {
