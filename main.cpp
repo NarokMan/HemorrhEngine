@@ -20,7 +20,7 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 6
+#define EDITOR_IMAGES 7
 
 FILE* file;
 
@@ -42,6 +42,12 @@ struct node {
 
     float x, y;
 
+};
+
+struct puck {
+	
+	int x, y;
+	
 };
 
 struct collision_cluster {
@@ -66,6 +72,9 @@ struct map_data {
 	int number_of_triggers;
 	std::vector<struct trigger_cluster> triggers;
 	
+	int number_of_pucks;
+	std::vector<struct puck> pucks;
+	
 	int player_starting_x;
 	int player_starting_y;
 	int player_starting_angle;
@@ -88,6 +97,7 @@ int screen_to_world(float screen_x, float camera_x, float zoom, float screen_cen
 int write_cfg(std::string map_name, 
     std::vector<struct collision_cluster> cluster_array, 
     std::vector<struct trigger_cluster> trigger_array,
+    std::vector<struct puck> puck_array,
     std::string music_file,
     int playerx, int playery, int player_angle) {
 	
@@ -117,6 +127,11 @@ int write_cfg(std::string map_name,
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
 	fprintf(file, "%d %d %d", playerx - 100, playery - 50, player_angle);
+	
+	fprintf(file, "\n\nPUCKS %d\n", puck_array.size());
+	for (int i = 0; i < puck_array.size(); i++) {
+		fprintf(file, "%d %d\n", puck_array[i].x, puck_array[i].y);
+	}
 	
 	fclose(file);
 
@@ -473,6 +488,11 @@ struct map_data get_map_data(std::string map_name) {
 	int player_y;
 	int player_angle;
 	
+	int num_pucks;
+	int temp_puck_x;
+	int temp_puck_y;
+	std::vector <struct puck> pucks;
+	
 	SDL_Log("Reading lines...");
 	
 	fgets(line, sizeof(line), file);
@@ -531,12 +551,25 @@ struct map_data get_map_data(std::string map_name) {
 	player_y += 50; // Accomodating for disparity between editor and executable
 	SDL_Log("The player will start at %d, %d and be oriented %d degrees.", player_x, player_y, player_angle);
 	
+	fgets(line, sizeof(line), file);
+	
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "PUCKS %d", &num_pucks);
+	for (int i = 0; i < num_pucks; i++) {
+		fgets(line, sizeof(line), file);
+		SDL_Log(line);
+		sscanf(line, "%d %d", &temp_puck_x, &temp_puck_y);
+		pucks.push_back({ temp_puck_x, temp_puck_y });
+	}
+	
 	fclose(file);
 	
 	SDL_Log("Making new map_data object...");
 	struct map_data new_map_data;
 	new_map_data.number_of_clusters = num_clusters;
 	new_map_data.number_of_triggers = num_triggers;
+	new_map_data.number_of_pucks = num_pucks;
 	new_map_data.player_starting_x = player_x;
 	new_map_data.player_starting_y = player_y;
 	new_map_data.player_starting_angle = player_angle;
@@ -544,6 +577,7 @@ struct map_data get_map_data(std::string map_name) {
 	SDL_Log("Grabbing the clusters...");
 	new_map_data.clusters = read_all_clusters(map_name, collision, num_clusters);
 	new_map_data.triggers = read_all_triggers(map_name, trigger_destinations, num_triggers);
+	new_map_data.pucks = pucks;
 	
 	new_map_data.music_file = std::string(music_file);
 	
@@ -562,10 +596,12 @@ char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/player_start_pos.png",
 	"ui/arrow.png",
 	"ui/zoom.png",
-	"ui/arrows4.png"
+	"ui/arrows4.png",
+	"ui/puck5.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -582,6 +618,7 @@ int active_trigger_cluster = -1;
 
 std::vector<struct collision_cluster> collision_cluster_array;
 std::vector<struct trigger_cluster> trigger_cluster_array;
+std::vector<struct puck> puck_array;
 
 bool player_position_selection_state = true; 
 int player_start_angle = 0;
@@ -680,15 +717,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 
     }
 
-    ui_buttons.push_back({ { 0, 200, 100, 50 } }); // add collision cluster
-    ui_buttons.push_back({ { 0, 250, 100, 50 } }); // remove cluster
-    ui_buttons.push_back({ { 0, 300, 100, 50 } }); // add node
-    ui_buttons.push_back({ { 0, 350, 100, 50 } }); // toggle collision mode
+    ui_buttons.push_back({ { 0, 100, 100, 50 } }); // add collision cluster
+    ui_buttons.push_back({ { 0, 150, 100, 50 } }); // remove cluster
+    ui_buttons.push_back({ { 0, 200, 100, 50 } }); // add node
+    ui_buttons.push_back({ { 0, 250, 100, 50 } }); // toggle collision mode
 
-    ui_buttons.push_back({ { 0, 600, 100, 50 } }); // add trigger cluster
-    ui_buttons.push_back({ { 0, 650, 100, 50 } }); // remove trigger cluster
-    ui_buttons.push_back({ { 0, 700, 100, 50 } }); // add trigger node
-    ui_buttons.push_back({ { 0, 750, 100, 50 } }); // change trigger action
+    ui_buttons.push_back({ { 0, 300, 100, 50 } }); // add trigger cluster
+    ui_buttons.push_back({ { 0, 350, 100, 50 } }); // remove trigger cluster
+    ui_buttons.push_back({ { 0, 400, 100, 50 } }); // add trigger node
+    ui_buttons.push_back({ { 0, 450, 100, 50 } }); // change trigger action
 
     ui_buttons.push_back({ { 240, 0, 95, 50 } }); // save
     ui_buttons.push_back({ { 500, 0, 95, 50 } }); // load
@@ -703,6 +740,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 	ui_buttons.push_back({ { WINDOW_WIDTH - 120, WINDOW_HEIGHT - 208, 55, 42} }); // pan left
 	ui_buttons.push_back({ { WINDOW_WIDTH - 60, WINDOW_HEIGHT - 208, 55, 42} }); // pan right
 	ui_buttons.push_back({ { WINDOW_WIDTH - 95, WINDOW_HEIGHT - 166, 65, 42} }); // pan down
+	
+	ui_buttons.push_back({ { 0, 500, 100, 50 } }); // add puck
+    ui_buttons.push_back({ { 0, 550, 100, 50 } }); // delete puck
 
     if (ui_buttons.empty()) {
         SDL_Log(ANSI_COLOR_RED "Failed to allocate for buttons. %s" ANSI_COLOR_RESET, SDL_GetError());
@@ -852,6 +892,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					}					
 
                     break;
+                    
+                case 19: // Add new puck
+                
+					puck_array.push_back( {
+						screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x),
+						screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
+                
+					break;
 
                 default:
                     break;
@@ -913,7 +961,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     map_name = result.value();
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 				}
@@ -933,6 +981,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						player_start_y = map_cfg.player_starting_y;
 						player_start_angle = map_cfg.player_starting_angle;
 						map_music_file = map_cfg.music_file;
+						puck_array = map_cfg.pucks;
 						
 					}
 				
@@ -946,7 +995,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     map_name = "temp";
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 					system("./game temp");
@@ -1231,6 +1280,18 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         }
 
     }
+    
+    // Drawing the pucks
+    for (int i = 0; i < puck_array.size(); i++) {
+		
+		SDL_FRect puck_rect = { 
+			(float)world_to_screen(puck_array[i].x, camera_x, zoom_scale, zoom_center_x) - 15 * zoom_scale, 
+			(float)world_to_screen(puck_array[i].y, camera_y, zoom_scale, zoom_center_y) - 15 * zoom_scale, 
+			30 * zoom_scale, 
+			30 * zoom_scale };
+		SDL_RenderTexture(renderer, ui_textures[6], NULL, &puck_rect);
+		
+	}
     
     // Draw UI overlay last
     SDL_FRect actionbar_rect = { 0, 0, WINDOW_WIDTH, 50 };
