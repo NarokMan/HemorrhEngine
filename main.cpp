@@ -130,7 +130,7 @@ int write_cfg(std::string map_name,
 	
 	fprintf(file, "\n\nPUCKS %d\n", puck_array.size());
 	for (int i = 0; i < puck_array.size(); i++) {
-		fprintf(file, "%d %d\n", puck_array[i].x, puck_array[i].y);
+		fprintf(file, "%d %d\n", puck_array[i].x - 100, puck_array[i].y - 50);
 	}
 	
 	fclose(file);
@@ -491,7 +491,7 @@ struct map_data get_map_data(std::string map_name) {
 	int num_pucks;
 	int temp_puck_x;
 	int temp_puck_y;
-	std::vector <struct puck> pucks;
+	std::vector <puck> pucks;
 	
 	SDL_Log("Reading lines...");
 	
@@ -880,8 +880,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					// 0 if the user is selecting the x/y location. Will switch to false when angle is being selected
 					if (player_position_selection_state == true) {
 						
-						player_start_x = mouse_x;
-						player_start_y = mouse_y;
+						player_start_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x);
+						player_start_y = screen_to_world(mouse_y, camera_x, zoom_scale, zoom_center_y);
 						player_position_selection_state = false;
 						
 					} else {
@@ -1014,8 +1014,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					SDL_Log(ANSI_COLOR_GREEN "Changed music file to: %s" ANSI_COLOR_RESET, map_music_file);
 					
 					break;
-					
-					// Modify this map's music file ig
 					
 				}
 				
