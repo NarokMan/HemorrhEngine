@@ -20,7 +20,7 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 7
+#define EDITOR_IMAGES 8
 
 FILE* file;
 
@@ -597,10 +597,12 @@ char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/arrow.png",
 	"ui/zoom.png",
 	"ui/arrows4.png",
-	"ui/puck5.png"
+	"ui/puck5.png",
+	"ui/puck6.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -614,6 +616,7 @@ std::vector<struct ui_button> ui_buttons;
 
 int active_tool = -1;
 int active_cluster = -1;
+int active_puck = -1;
 int active_trigger_cluster = -1;
 
 std::vector<struct collision_cluster> collision_cluster_array;
@@ -806,6 +809,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 					active_cluster = collision_cluster_array.size() - 1;
                     active_trigger_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -816,6 +820,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     active_cluster = -1;
                     active_trigger_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -831,6 +836,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				    }
 
                     active_trigger_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -846,6 +852,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     active_trigger_cluster = trigger_cluster_array.size() - 1;
                     active_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -856,6 +863,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     active_cluster = -1;
                     active_trigger_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -871,6 +879,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     }
 
                     active_cluster = -1;
+                    active_puck = -1;
 
                     break;
 
@@ -898,7 +907,22 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					puck_array.push_back( {
 						screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x),
 						screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) });
+						
+					active_cluster = -1;
+					active_trigger_cluster = -1;
+					active_puck = puck_array.size() - 1;
                 
+					break;
+					
+				case 20: // Delete current
+				
+					if (active_puck != -1)
+                        puck_array.erase(puck_array.begin() + active_puck);
+                      
+                    active_cluster = -1;
+                    active_trigger_cluster = -1;
+                    active_puck = -1;
+                        
 					break;
 
                 default:
@@ -1078,6 +1102,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 						active_cluster = i;
                         active_trigger_cluster = -1;
+                        active_puck = -1;
                         cluster_selected = true;
 
 						SDL_Log("Selected cluster at (%f, %f)", node_x, node_y);
@@ -1095,6 +1120,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                         active_cluster = -1;
                         active_trigger_cluster = i;
+                        active_puck = -1;
 						cluster_selected = true;
 
                         SDL_Log("Selected triggercluster at (%f, %f)", node_x, node_y);
@@ -1102,10 +1128,29 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     }
                 }
             }
+            
+            for (int i = 0; i < puck_array.size(); i++) {
+				
+				float puck_x = puck_array[i].x;
+				float puck_y = puck_array[i].y;
+				if (mouse_x >= puck_x - 15 && mouse_x <= puck_x + 15 &&
+					mouse_y >= puck_y - 15 && mouse_y <= puck_y + 15) {
+
+					active_cluster = -1;
+					active_trigger_cluster = -1;
+					active_puck = i;
+					cluster_selected = true;
+
+					SDL_Log("Selected puck at (%f, %f)", puck_x, puck_y);
+					break;
+				}
+				
+			}
 
 			if (!cluster_selected) {
 				active_cluster = -1;
 				active_trigger_cluster = -1;
+				active_puck = -1;
 			}
 
 		}
@@ -1287,7 +1332,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 			(float)world_to_screen(puck_array[i].y, camera_y, zoom_scale, zoom_center_y) - 15 * zoom_scale, 
 			30 * zoom_scale, 
 			30 * zoom_scale };
-		SDL_RenderTexture(renderer, ui_textures[6], NULL, &puck_rect);
+			
+		if (i == active_puck)
+			SDL_RenderTexture(renderer, ui_textures[7], NULL, &puck_rect);		
+		else
+			SDL_RenderTexture(renderer, ui_textures[6], NULL, &puck_rect);
 		
 	}
     
