@@ -747,6 +747,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 	ui_buttons.push_back({ { 0, 500, 100, 50 } }); // add puck
     ui_buttons.push_back({ { 0, 550, 100, 50 } }); // delete puck
 
+	ui_buttons.push_back({ { 0, 600, 100, 50 } }); // add texture box
+	ui_buttons.push_back({ { 0, 650, 100, 50 } }); // delete texture box
+
     if (ui_buttons.empty()) {
         SDL_Log(ANSI_COLOR_RED "Failed to allocate for buttons. %s" ANSI_COLOR_RESET, SDL_GetError());
         return SDL_APP_FAILURE;
@@ -992,7 +995,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     break;
                     
-                 case 9: { // Load da map (action)
+                case 9: { // Load da map (action)
                  
 					auto result = text_query(renderer, "Enter map to load:");
 					
