@@ -50,6 +50,13 @@ struct puck {
 	
 };
 
+struct texture_box {
+	
+	SDL_FRect rect;
+	std::string filename;
+	
+};
+
 struct collision_cluster {
 
     std::vector<struct node> node_array;
@@ -618,17 +625,20 @@ int active_tool = -1;
 int active_cluster = -1;
 int active_puck = -1;
 int active_trigger_cluster = -1;
+int active_texture_box = -1;
 
 std::vector<struct collision_cluster> collision_cluster_array;
 std::vector<struct trigger_cluster> trigger_cluster_array;
 std::vector<struct puck> puck_array;
+std::vector<struct texture_box> texture_box_array;
 
-bool player_position_selection_state = true; 
+bool player_position_selection_state = true; // True is selecting player position, false is selecting angle
+bool texture_box_selection_state = true; // True is selecting box x1 and y1, false is selecting x2 and y2
 int player_start_angle = 0;
 int player_start_x = 800;
 int player_start_y = 450;
 
-float zoom_scale = 1.0;
+float zoom_scale = 1.0f;
 float zoom_factor = 1.1f;
 int zoom_center_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2;
 int zoom_center_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
@@ -768,6 +778,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
     struct collision_cluster temp_cluster;
     struct trigger_cluster temp_trigger;
+    struct texture_box temp_texture_box;
 
     std::string map_name;
     std::string clusters_dir;
@@ -813,6 +824,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					active_cluster = collision_cluster_array.size() - 1;
                     active_trigger_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
 
                     break;
 
@@ -824,6 +836,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     active_cluster = -1;
                     active_trigger_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
 
                     break;
 
@@ -840,6 +853,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
                     active_trigger_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
 
                     break;
 
@@ -856,6 +870,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     active_trigger_cluster = trigger_cluster_array.size() - 1;
                     active_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
 
                     break;
 
@@ -867,6 +882,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     active_cluster = -1;
                     active_trigger_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
 
                     break;
 
@@ -913,6 +929,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						
 					active_cluster = -1;
 					active_trigger_cluster = -1;
+					active_texture_box = -1;
 					active_puck = puck_array.size() - 1;
                 
 					break;
@@ -925,7 +942,37 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     active_cluster = -1;
                     active_trigger_cluster = -1;
                     active_puck = -1;
+                    active_texture_box = -1;
                         
+					break;
+					
+				case 21: // Add new texture box
+				
+					if (texture_box_selection_state == true) {
+						
+						temp_texture_box.rect.x = mouse_x;
+						temp_texture_box.rect.y = mouse_y;
+						temp_texture_box.rect.w = 0;
+						temp_texture_box.rect.h = 0;
+						
+						texture_box_array.push_back(temp_texture_box);
+						
+						active_cluster = -1;
+						active_puck = -1;
+						active_trigger_cluster = -1;
+						active_texture_box = texture_box_array.size() - 1;
+						
+						texture_box_selection_state = false;
+						
+					} else {
+						
+						texture_box_array[active_texture_box].rect.w = mouse_x - texture_box_array[active_texture_box].rect.x;
+						texture_box_array[active_texture_box].rect.h = mouse_y - texture_box_array[active_texture_box].rect.y;
+						
+						texture_box_selection_state = true;
+						
+					}
+				
 					break;
 
                 default:
@@ -1106,6 +1153,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						active_cluster = i;
                         active_trigger_cluster = -1;
                         active_puck = -1;
+                        active_texture_box = -1;
                         cluster_selected = true;
 
 						SDL_Log("Selected cluster at (%f, %f)", node_x, node_y);
@@ -1124,6 +1172,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                         active_cluster = -1;
                         active_trigger_cluster = i;
                         active_puck = -1;
+                        active_texture_box = -1;
 						cluster_selected = true;
 
                         SDL_Log("Selected triggercluster at (%f, %f)", node_x, node_y);
@@ -1142,9 +1191,30 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					active_cluster = -1;
 					active_trigger_cluster = -1;
 					active_puck = i;
+					active_texture_box = -1;
 					cluster_selected = true;
 
 					SDL_Log("Selected puck at (%f, %f)", puck_x, puck_y);
+					break;
+				}
+				
+			}
+			
+			for (int i = 0; i < texture_box_array.size(); i++) {
+				
+				float box_x = texture_box_array[i].rect.x;
+				float box_y = texture_box_array[i].rect.y;
+				
+				if (mouse_x >= box_x - 15 && mouse_x <= box_x + 15 &&
+					mouse_y >= box_y - 15 && mouse_y <= box_y + 15) {
+
+					active_cluster = -1;
+					active_trigger_cluster = -1;
+					active_puck = -1;
+					active_texture_box = i;
+					cluster_selected = true;
+
+					SDL_Log("Selected texture_box at (%f, %f)", box_x, box_y);
 					break;
 				}
 				
@@ -1342,6 +1412,30 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 			SDL_RenderTexture(renderer, ui_textures[6], NULL, &puck_rect);
 		
 	}
+	
+	
+	// Drawing the texture boxes
+    for (int i = 0; i < texture_box_array.size(); i++) {
+		
+		if (i == active_texture_box) // if this is the active cluster, draw it in yellow
+			SDL_SetRenderDrawColorFloat(renderer, 1, 1, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		else // otherwise, use blue
+			SDL_SetRenderDrawColorFloat(renderer, 0, 1, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		
+		SDL_FRect box_rect = { 
+			(float)world_to_screen(texture_box_array[i].rect.x, camera_x, zoom_scale, zoom_center_x), 
+			(float)world_to_screen(texture_box_array[i].rect.y, camera_y, zoom_scale, zoom_center_y), 
+			(float)texture_box_array[i].rect.w * zoom_scale, 
+			(float)texture_box_array[i].rect.h * zoom_scale
+		};
+			
+		if (i == active_puck)
+			SDL_RenderRect(renderer, &box_rect);		
+		else
+			SDL_RenderRect(renderer, &box_rect);
+		
+	}
+    
     
     // Draw UI overlay last
     SDL_FRect actionbar_rect = { 0, 0, WINDOW_WIDTH, 50 };
