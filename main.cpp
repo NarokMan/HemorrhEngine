@@ -20,7 +20,7 @@
 #define GRID_UPPER_MARGIN 50
 #define GRID_LEFT_MARGIN 100
 
-#define EDITOR_IMAGES 8
+#define EDITOR_IMAGES 9
 
 FILE* file;
 
@@ -605,10 +605,12 @@ char ui_image_files[EDITOR_IMAGES][256] = {
 	"ui/zoom.png",
 	"ui/arrows4.png",
 	"ui/puck5.png",
-	"ui/puck6.png"
+	"ui/puck6.png",
+	"ui/texture_box.png"
 };
 
 SDL_Texture* ui_textures[EDITOR_IMAGES] = {
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -974,6 +976,18 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					}
 				
 					break;
+					
+				case 22: // Delete active texture box
+				
+					if (active_texture_box != -1)
+                        texture_box_array.erase(texture_box_array.begin() + active_texture_box);
+                      
+                    active_cluster = -1;
+                    active_trigger_cluster = -1;
+                    active_puck = -1;
+                    active_texture_box = -1;
+                        
+					break;
 
                 default:
                     break;
@@ -1205,8 +1219,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				float box_x = texture_box_array[i].rect.x;
 				float box_y = texture_box_array[i].rect.y;
 				
-				if (mouse_x >= box_x - 15 && mouse_x <= box_x + 15 &&
-					mouse_y >= box_y - 15 && mouse_y <= box_y + 15) {
+				if (mouse_x >= box_x && mouse_x <= box_x + 30 &&
+					mouse_y >= box_y && mouse_y <= box_y + 30) {
 
 					active_cluster = -1;
 					active_trigger_cluster = -1;
@@ -1417,6 +1431,11 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 	// Drawing the texture boxes
     for (int i = 0; i < texture_box_array.size(); i++) {
 		
+		SDL_FRect box_icon = {
+			(float)world_to_screen(texture_box_array[i].rect.x, camera_x, zoom_scale, zoom_center_x),
+			(float)world_to_screen(texture_box_array[i].rect.y, camera_y, zoom_scale, zoom_center_y), 
+			30, 30 };			
+		
 		if (i == active_texture_box) // if this is the active cluster, draw it in yellow
 			SDL_SetRenderDrawColorFloat(renderer, 1, 1, 0, SDL_ALPHA_OPAQUE_FLOAT);
 		else // otherwise, use blue
@@ -1433,6 +1452,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 			SDL_RenderRect(renderer, &box_rect);		
 		else
 			SDL_RenderRect(renderer, &box_rect);
+			
+		SDL_RenderTexture(renderer, ui_textures[8], NULL, &box_icon);
 		
 	}
     
@@ -1455,7 +1476,6 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 	
 	SDL_FRect pan_rect = { WINDOW_WIDTH - 125, zoom_rect.y - 130, 125, 130 };
 	SDL_RenderTexture(renderer, ui_textures[5], NULL, &pan_rect);
-
 
     if (active_tool != -1) {
 		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
