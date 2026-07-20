@@ -193,7 +193,7 @@ struct collision_cluster read_cluster_file(std::string filename, enum collision_
 	while (fgets(line, sizeof(line), file)) {
 	
 		sscanf(line, "%f, %f", &num1, &num2);
-		new_cluster.node_array.push_back({num1 + 100, num2 + 50});
+		new_cluster.node_array.push_back({num1, num2});
 		
 	}
 	
@@ -1295,6 +1295,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				active_cluster = -1;
 				active_trigger_cluster = -1;
 				active_puck = -1;
+				active_texture_box = -1;
 			}
 
 		}
