@@ -1,12 +1,17 @@
 The editor designed to help make my new hockey game project.
 
-Version 1.0 - Can run maps now inside the editor
+Version 1.0 - Pretty much at MVP with the editor, most of the work is on the game executable now
 
-7/9/2026
+7/20/2026
 
 CURRENT FEATURES:
 - Grid workspace
   - Highlighted selected cluster/puck
+  - Zooming in/out on workspace
+  - Texture bounding boxes
+  - Panning on workspace
+  - Texture file selection
+  - Texture path saving in map cfg file
 - Toolbar (on the left)
   - Creation of collision clusters
   - Creation of trigger clusters
@@ -29,8 +34,4 @@ CURRENT FEATURES:
   - Running maps
  
 PLANNED FEATURES:
-- Zooming in/out on workspace
-- Panning on workspace
-- Texture bounding boxes
-- Texture file selection
-- Texture path saving in map cfg file
+- Nothing for now. Need to get textures working in the game executable and then I can continue working on other things.
