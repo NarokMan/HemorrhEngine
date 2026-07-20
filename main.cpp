@@ -992,8 +992,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				
 					if (texture_box_selection_state == true) {
 						
-						temp_texture_box.rect.x = mouse_x - mouse_x % 10;
-						temp_texture_box.rect.y = mouse_y - mouse_y % 10;
+						temp_texture_box.rect.x = screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x);
+						temp_texture_box.rect.y = screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y);
 						temp_texture_box.rect.w = 0;
 						temp_texture_box.rect.h = 0;
 						
@@ -1008,8 +1008,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						
 					} else {
 						
-						texture_box_array[active_texture_box].rect.w = mouse_x - mouse_x % 10 - texture_box_array[active_texture_box].rect.x;
-						texture_box_array[active_texture_box].rect.h = mouse_x - mouse_x % 10 - texture_box_array[active_texture_box].rect.y;
+						texture_box_array[active_texture_box].rect.w = screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x) - texture_box_array[active_texture_box].rect.x;
+						texture_box_array[active_texture_box].rect.h = screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) - texture_box_array[active_texture_box].rect.y;
 						
 						texture_box_selection_state = true;
 						
