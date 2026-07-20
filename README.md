@@ -34,3 +34,4 @@ CURRENT FEATURES:
   - Running maps
  
 PLANNED FEATURES:
+- Nothing for now. Need to get textures working in the game executable and then I can continue working on other things.
