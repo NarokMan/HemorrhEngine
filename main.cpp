@@ -88,6 +88,9 @@ struct map_data {
 	
 	std::string music_file;
 	
+	int number_of_texture_boxes;
+	std::vector<struct texture_box> texture_boxes;
+	
 };
 
 // Helps with displaying coordinates correctly when zooming out or in
@@ -105,6 +108,7 @@ int write_cfg(std::string map_name,
     std::vector<struct collision_cluster> cluster_array, 
     std::vector<struct trigger_cluster> trigger_array,
     std::vector<struct puck> puck_array,
+    std::vector<struct texture_box> texture_box_array,
     std::string music_file,
     int playerx, int playery, int player_angle) {
 	
@@ -133,11 +137,16 @@ int write_cfg(std::string map_name,
 		fprintf(file, "\nMUSIC 0 - PLACED INSIDE THE MUSIC FOLDER\n");
 
     fprintf(file, "\nPLAYER SPAWN - X Y ANGLE\n");
-	fprintf(file, "%d %d %d", playerx - 100, playery - 50, player_angle);
+	fprintf(file, "%d %d %d\n", playerx - 100, playery - 50, player_angle);
 	
-	fprintf(file, "\n\nPUCKS %d\n", puck_array.size());
+	fprintf(file, "\nPUCKS %d\n", puck_array.size());
 	for (int i = 0; i < puck_array.size(); i++) {
 		fprintf(file, "%d %d\n", puck_array[i].x - 100, puck_array[i].y - 50);
+	}
+	
+	fprintf(file, "\nTEXTURE BOXES %d\n", texture_box_array.size());
+	for (int i = 0; i < texture_box_array.size(); i++) {
+		fprintf(file, "textures/%s %d %d %d %d\n", texture_box_array[i].filename.c_str(), (int)texture_box_array[i].rect.x - 100, (int)texture_box_array[i].rect.y - 50, (int)texture_box_array[i].rect.w, (int)texture_box_array[i].rect.h);
 	}
 	
 	fclose(file);
@@ -460,6 +469,9 @@ int make_map_dir(std::string map_name) {
 
 	full_path = "maps/" + map_name + "/music";
 	SDL_CreateDirectory(full_path.c_str());
+	
+	full_path = "maps/" + map_name + "/textures";
+	SDL_CreateDirectory(full_path.c_str());
 
     return 0;
 
@@ -499,6 +511,12 @@ struct map_data get_map_data(std::string map_name) {
 	int temp_puck_x;
 	int temp_puck_y;
 	std::vector <puck> pucks;
+	
+	int num_texture_boxes;
+	SDL_FRect temp_texture_rect;
+	char temp_texture_file[256];
+	std::vector <texture_box> texture_boxes;
+	struct texture_box temp_texture_box;
 	
 	SDL_Log("Reading lines...");
 	
@@ -569,6 +587,22 @@ struct map_data get_map_data(std::string map_name) {
 		sscanf(line, "%d %d", &temp_puck_x, &temp_puck_y);
 		pucks.push_back({ temp_puck_x, temp_puck_y });
 	}
+	SDL_Log("There will be %d pucks", num_pucks);
+	
+	fgets(line, sizeof(line), file);
+	
+	fgets(line, sizeof(line), file);
+	SDL_Log(line);
+	sscanf(line, "TEXTURE BOXES %d", &num_texture_boxes);
+	for (int i = 0; i < num_texture_boxes; i++) {
+		fgets(line, sizeof(line), file);
+		SDL_Log(line);
+		sscanf(line, "%s %f %f %f %f", temp_texture_file, &temp_texture_rect.x, &temp_texture_rect.y, &temp_texture_rect.w, &temp_texture_rect.h);
+		temp_texture_box.filename = temp_texture_file;
+		temp_texture_box.rect = temp_texture_rect;
+		texture_boxes.push_back(temp_texture_box);
+	}
+	SDL_Log("There will be %d texture boxes", num_texture_boxes);
 	
 	fclose(file);
 	
@@ -577,6 +611,7 @@ struct map_data get_map_data(std::string map_name) {
 	new_map_data.number_of_clusters = num_clusters;
 	new_map_data.number_of_triggers = num_triggers;
 	new_map_data.number_of_pucks = num_pucks;
+	new_map_data.number_of_texture_boxes = num_texture_boxes;
 	new_map_data.player_starting_x = player_x;
 	new_map_data.player_starting_y = player_y;
 	new_map_data.player_starting_angle = player_angle;
@@ -587,6 +622,9 @@ struct map_data get_map_data(std::string map_name) {
 	new_map_data.pucks = pucks;
 	
 	new_map_data.music_file = std::string(music_file);
+	
+	SDL_Log("Getting the texture boxes...");
+	new_map_data.texture_boxes = texture_boxes;
 	
 	return new_map_data;
 	
@@ -648,6 +686,7 @@ int camera_x = zoom_center_x;
 int camera_y = zoom_center_y;
 
 std::string map_music_file = "";
+std::string texture_file = "";
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 {
@@ -761,6 +800,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[])
 
 	ui_buttons.push_back({ { 0, 600, 100, 50 } }); // add texture box
 	ui_buttons.push_back({ { 0, 650, 100, 50 } }); // delete texture box
+	ui_buttons.push_back({ { 0, 700, 100, 50 } }); // load texture for texture box
 
     if (ui_buttons.empty()) {
         SDL_Log(ANSI_COLOR_RED "Failed to allocate for buttons. %s" ANSI_COLOR_RESET, SDL_GetError());
@@ -1049,7 +1089,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     map_name = result.value();
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, texture_box_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 				}
@@ -1070,6 +1110,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						player_start_angle = map_cfg.player_starting_angle;
 						map_music_file = map_cfg.music_file;
 						puck_array = map_cfg.pucks;
+						texture_box_array = map_cfg.texture_boxes;
+						SDL_Log("num texture boxes = %d", map_cfg.number_of_texture_boxes);
 						
 					}
 				
@@ -1083,7 +1125,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     map_name = "temp";
                     make_map_dir(map_name); // Create map dir and sub dirs for clusters, trigs and muisca
                     SDL_Log(ANSI_COLOR_GREEN "Creating map file..." ANSI_COLOR_RESET);
-					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
+					write_cfg(map_name, collision_cluster_array, trigger_cluster_array, puck_array, texture_box_array, map_music_file, (int)player_start_x, (int)player_start_y, (int)player_start_angle); // Create map config file
 					write_all_clusters(map_name, collision_cluster_array);
 					write_all_triggers(map_name, trigger_cluster_array);
 					system("./game temp");
@@ -1146,6 +1188,21 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				case 18: // Pan up
 				
 					camera_y += 100;
+					
+					break;
+					
+				case 23: // Select texture for active texture box
+				
+					auto result = text_query(renderer, "Enter png without extension to use as the texture box's texture.");
+					if (!result.has_value()) {
+						SDL_Log(ANSI_COLOR_RED "Empty string returned. :-(" ANSI_COLOR_RESET);
+						break;
+					}
+					
+					if (active_texture_box != -1) {
+						texture_box_array[active_texture_box].filename = result.value() + ".png";
+						SDL_Log(ANSI_COLOR_GREEN "Changed texture file to: %s" ANSI_COLOR_RESET, texture_file.c_str());
+					}
 					
 					break;
 
@@ -1430,6 +1487,8 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 	
 	// Drawing the texture boxes
     for (int i = 0; i < texture_box_array.size(); i++) {
+		
+		SDL_Log("num textureboxes = %d", texture_box_array[i].rect.w);
 		
 		SDL_FRect box_icon = {
 			(float)world_to_screen(texture_box_array[i].rect.x, camera_x, zoom_scale, zoom_center_x),
