@@ -951,7 +951,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					if (player_position_selection_state == true) {
 						
 						player_start_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x);
-						player_start_y = screen_to_world(mouse_y, camera_x, zoom_scale, zoom_center_y);
+						player_start_y = screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y);
 						player_position_selection_state = false;
 						
 					} else {
@@ -1487,8 +1487,6 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 	
 	// Drawing the texture boxes
     for (int i = 0; i < texture_box_array.size(); i++) {
-		
-		SDL_Log("num textureboxes = %d", texture_box_array[i].rect.w);
 		
 		SDL_FRect box_icon = {
 			(float)world_to_screen(texture_box_array[i].rect.x, camera_x, zoom_scale, zoom_center_x),
