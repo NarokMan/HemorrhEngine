@@ -193,7 +193,7 @@ struct collision_cluster read_cluster_file(std::string filename, enum collision_
 	while (fgets(line, sizeof(line), file)) {
 	
 		sscanf(line, "%f, %f", &num1, &num2);
-		new_cluster.node_array.push_back({num1, num2});
+		new_cluster.node_array.push_back({num1 + 100, num2 + 50});
 		
 	}
 	
@@ -585,6 +585,8 @@ struct map_data get_map_data(std::string map_name) {
 		fgets(line, sizeof(line), file);
 		SDL_Log(line);
 		sscanf(line, "%d %d", &temp_puck_x, &temp_puck_y);
+		temp_puck_x += 100;
+		temp_puck_y += 50;
 		pucks.push_back({ temp_puck_x, temp_puck_y });
 	}
 	SDL_Log("There will be %d pucks", num_pucks);
@@ -599,6 +601,8 @@ struct map_data get_map_data(std::string map_name) {
 		SDL_Log(line);
 		sscanf(line, "%s %f %f %f %f", temp_texture_file, &temp_texture_rect.x, &temp_texture_rect.y, &temp_texture_rect.w, &temp_texture_rect.h);
 		temp_texture_box.filename = temp_texture_file;
+		temp_texture_rect.x += 100;
+		temp_texture_rect.y += 50;
 		temp_texture_box.rect = temp_texture_rect;
 		texture_boxes.push_back(temp_texture_box);
 	}
