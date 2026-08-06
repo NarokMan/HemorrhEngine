@@ -2,7 +2,7 @@ The editor designed to help make my new hockey game project.
 
 Version 1.0 - Pretty much at MVP with the editor, most of the work is on the game executable now
 
-7/20/2026
+8/6/2026
 
 CURRENT FEATURES:
 - Grid workspace
@@ -34,4 +34,6 @@ CURRENT FEATURES:
   - Running maps
  
 PLANNED FEATURES:
-- Nothing for now. Need to get textures working in the game executable and then I can continue working on other things.
+- Moving objects with keyframes
+- Hockey AI
+- Enemy animation and AI
