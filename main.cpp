@@ -132,7 +132,7 @@ int write_cfg(std::string map_name,
 
     if (!music_file.empty()) {
 		fprintf(file, "\nMUSIC 1 - PLACED INSIDE THE MUSIC FOLDER\n");
-		fprintf(file, "music/%s.mp3\n", music_file.c_str());
+		fprintf(file, "%s\n", music_file.c_str());
 	} else
 		fprintf(file, "\nMUSIC 0 - PLACED INSIDE THE MUSIC FOLDER\n");
 
@@ -146,7 +146,7 @@ int write_cfg(std::string map_name,
 	
 	fprintf(file, "\nTEXTURE BOXES %d\n", texture_box_array.size());
 	for (int i = 0; i < texture_box_array.size(); i++) {
-		fprintf(file, "textures/%s %d %d %d %d\n", texture_box_array[i].filename.c_str(), (int)texture_box_array[i].rect.x - 100, (int)texture_box_array[i].rect.y - 50, (int)texture_box_array[i].rect.w, (int)texture_box_array[i].rect.h);
+		fprintf(file, "%s %d %d %d %d\n", texture_box_array[i].filename.c_str(), (int)texture_box_array[i].rect.x - 100, (int)texture_box_array[i].rect.y - 50, (int)texture_box_array[i].rect.w, (int)texture_box_array[i].rect.h);
 	}
 	
 	fclose(file);
@@ -1025,6 +1025,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				
 					if (active_texture_box != -1)
                         texture_box_array.erase(texture_box_array.begin() + active_texture_box);
+                        
+                    SDL_Log("Deleted active texture box");
                       
                     active_cluster = -1;
                     active_trigger_cluster = -1;
@@ -1144,8 +1146,11 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						break;
 					}
 					
-					map_music_file = result.value();
-					SDL_Log(ANSI_COLOR_GREEN "Changed music file to: %s" ANSI_COLOR_RESET, map_music_file);
+					map_music_file = "music/";
+					map_music_file = map_music_file + result.value();
+					map_music_file = map_music_file + ".mp3";
+					SDL_Log(ANSI_COLOR_GREEN "Changed music file to: %s" ANSI_COLOR_RESET, map_music_file.c_str());
+					
 					
 					break;
 					
@@ -1204,7 +1209,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					}
 					
 					if (active_texture_box != -1) {
-						texture_box_array[active_texture_box].filename = result.value() + ".png";
+						texture_box_array[active_texture_box].filename = "textures";
+						texture_box_array[active_texture_box].filename = texture_box_array[active_texture_box].filename + result.value();
+						texture_box_array[active_texture_box].filename = texture_box_array[active_texture_box].filename +  + ".png";
 						SDL_Log(ANSI_COLOR_GREEN "Changed texture file to: %s" ANSI_COLOR_RESET, texture_file.c_str());
 					}
 					
