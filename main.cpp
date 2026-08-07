@@ -9,7 +9,7 @@
 #include <string>
 #include <optional>
 
-#define TARGET_FPS 20
+#define TARGET_FPS 30
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -679,8 +679,8 @@ std::vector<struct texture_box> texture_box_array;
 bool player_position_selection_state = true; // True is selecting player position, false is selecting angle
 bool texture_box_selection_state = true; // True is selecting box x1 and y1, false is selecting x2 and y2
 int player_start_angle = 0;
-int player_start_x = 800;
-int player_start_y = 450;
+int player_start_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2;
+int player_start_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
 
 float zoom_scale = 1.0f;
 float zoom_factor = 1.1f;
@@ -1328,6 +1328,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 
     SDL_RenderClear(renderer);
 
+	/*
 	// Draw horizontal workspace gridlines
     for (float i = GRID_UPPER_MARGIN; i < WINDOW_HEIGHT; i += 100 * zoom_scale) {
 
@@ -1350,11 +1351,80 @@ SDL_AppResult SDL_AppIterate(void* appstate)
         for (float j = 0; j < 100; j += 10 * zoom_scale)
             SDL_RenderLine(renderer, i + j - 50, 0, i + j - 50, WINDOW_HEIGHT);
 
-		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0], 0, SDL_ALPHA_OPAQUE_FLOAT);
         SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
         SDL_RenderLine(renderer, i - 50, 0, i - 50, WINDOW_HEIGHT);
+
+    }
+    */
+	
+    // Draw horizontal workspace gridlines
+    for (float i = camera_y; i < screen_to_world(WINDOW_HEIGHT, camera_y, zoom_scale, zoom_center_y); i += 100 * zoom_scale) {
+
+        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
+        
+        for (int j = 1; j < 10; j++) {
+			
+			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+			SDL_RenderLine(renderer, 0, i + j * 10 * zoom_scale, WINDOW_WIDTH, i + j * 10 * zoom_scale);
+			
+		}
+		
+		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		SDL_RenderLine(renderer, 0, i + 50 * zoom_scale, WINDOW_WIDTH, i + 50 * zoom_scale);
+
+    }
+    for (float i = camera_y; i > screen_to_world(50, camera_y, zoom_scale, zoom_center_y); i -= 100 * zoom_scale) {
+
+        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
+        
+        for (int j = 1; j < 10; j++) {
+			
+			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+			SDL_RenderLine(renderer, 0, i - j * 10 * zoom_scale, WINDOW_WIDTH, i - j * 10 * zoom_scale);
+			
+		}
+		
+		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		SDL_RenderLine(renderer, 0, i - 50 * zoom_scale, WINDOW_WIDTH, i - 50 * zoom_scale);
+
+    }
+    
+    // Draw vertical workspace gridlines
+    for (float i = camera_x; i < screen_to_world(WINDOW_WIDTH, camera_x, zoom_scale, zoom_center_x); i += 100 * zoom_scale) {
+
+        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
+        
+        for (int j = 1; j < 10; j++) {
+			
+			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+			SDL_RenderLine(renderer, i + j * 10 * zoom_scale, 0, i + j * 10 * zoom_scale, WINDOW_HEIGHT);
+			
+		}
+		
+		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		SDL_RenderLine(renderer, i + 50 * zoom_scale, 0, i + 50 * zoom_scale, WINDOW_HEIGHT);
+
+    }
+    for (float i = camera_x; i > screen_to_world(100, camera_x, zoom_scale, zoom_center_x); i -= 100 * zoom_scale) {
+
+        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
+        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
+        
+        for (int j = 1; j < 10; j++) {
+			
+			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+			SDL_RenderLine(renderer, i - j * 10 * zoom_scale, 0, i - j * 10 * zoom_scale, WINDOW_HEIGHT);
+			
+		}
+		
+		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
+		SDL_RenderLine(renderer, i - 50 * zoom_scale, 0, i - 50 * zoom_scale, WINDOW_HEIGHT);
 
     }
 
