@@ -844,8 +844,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		if (event->button.button == SDL_BUTTON_LEFT) {
 			
 			SDL_Log("Mouse: %d, %d", mouse_x, mouse_y);
-			float snapped_mouse_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x) - fmod(screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 10.0f * zoom_scale);
-			float snapped_mouse_y = screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) - fmod(screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y), 10.0f * zoom_scale);
+			float snapped_mouse_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x) - fmod(screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 10.0f);
+			float snapped_mouse_y = screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) - fmod(screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y), 10.0f);
 			
 			for (int i = 0; i < ui_buttons.size(); i++) {
 				if (mouse_x >= ui_buttons[i].rect.x && mouse_x <= ui_buttons[i].rect.x + ui_buttons[i].rect.w &&
@@ -894,8 +894,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					if (active_cluster != -1) {
 
                         collision_cluster_array[active_cluster].node_array.push_back({ 
-							(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
-							(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
+							snapped_mouse_x, 
+							snapped_mouse_y });
                         SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
                 
 				    }
@@ -911,8 +911,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     temp_trigger = trigger_cluster();
                     temp_trigger.destination_map_name = "";
                     temp_trigger.node_array.push_back({ 
-						(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
-						(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
+						snapped_mouse_x, 
+						snapped_mouse_y });
                     trigger_cluster_array.push_back(temp_trigger); // Create an initial node to start the cluster off
                     SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
@@ -940,8 +940,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     if (active_trigger_cluster != -1) {
 
                         trigger_cluster_array[active_trigger_cluster].node_array.push_back({ 
-							(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
-							(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
+							snapped_mouse_x, 
+							snapped_mouse_y });
                         SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
                     }
