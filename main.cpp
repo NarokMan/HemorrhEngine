@@ -999,8 +999,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				
 					if (texture_box_selection_state == true) {
 						
-						temp_texture_box.rect.x = screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x);
-						temp_texture_box.rect.y = screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y);
+						temp_texture_box.rect.x = snapped_mouse_x;
+						temp_texture_box.rect.y = snapped_mouse_y;
 						temp_texture_box.rect.w = 0;
 						temp_texture_box.rect.h = 0;
 						
@@ -1015,8 +1015,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						
 					} else {
 						
-						texture_box_array[active_texture_box].rect.w = screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x) - texture_box_array[active_texture_box].rect.x;
-						texture_box_array[active_texture_box].rect.h = screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) - texture_box_array[active_texture_box].rect.y;
+						texture_box_array[active_texture_box].rect.w = snapped_mouse_x - texture_box_array[active_texture_box].rect.x;
+						texture_box_array[active_texture_box].rect.h = snapped_mouse_y - texture_box_array[active_texture_box].rect.y;
 						
 						texture_box_selection_state = true;
 						
@@ -1227,13 +1227,16 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		else if (event->button.button == SDL_BUTTON_RIGHT) {
 			
 			bool cluster_selected = false;
+			
+			int world_mouse_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x);
+			int world_mouse_y = screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y);
 
 			for (int i = 0; i < collision_cluster_array.size(); i++) {
 				for (int j = 0; j < collision_cluster_array[i].node_array.size(); j++) {
 					float node_x = collision_cluster_array[i].node_array[j].x;
 					float node_y = collision_cluster_array[i].node_array[j].y;
-					if (mouse_x >= node_x - 5 && mouse_x <= node_x + 5 &&
-						mouse_y >= node_y - 5 && mouse_y <= node_y + 5) {
+					if (world_mouse_x >= node_x - 5 && world_mouse_x <= node_x + 5 &&
+						world_mouse_y >= node_y - 5 && world_mouse_y <= node_y + 5) {
 
 						active_cluster = i;
                         active_trigger_cluster = -1;
@@ -1251,8 +1254,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                 for (int j = 0; j < trigger_cluster_array[i].node_array.size(); j++) {
                     float node_x = trigger_cluster_array[i].node_array[j].x;
                     float node_y = trigger_cluster_array[i].node_array[j].y;
-                    if (mouse_x >= node_x - 5 && mouse_x <= node_x + 5 &&
-                        mouse_y >= node_y - 5 && mouse_y <= node_y + 5) {
+                    if (world_mouse_x >= node_x - 5 && world_mouse_x <= node_x + 5 &&
+                        world_mouse_y >= node_y - 5 && world_mouse_y <= node_y + 5) {
 
                         active_cluster = -1;
                         active_trigger_cluster = i;
@@ -1270,8 +1273,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				
 				float puck_x = puck_array[i].x;
 				float puck_y = puck_array[i].y;
-				if (mouse_x >= puck_x - 15 && mouse_x <= puck_x + 15 &&
-					mouse_y >= puck_y - 15 && mouse_y <= puck_y + 15) {
+				if (world_mouse_x >= puck_x - 15 && world_mouse_x <= puck_x + 15 &&
+					world_mouse_y >= puck_y - 15 && world_mouse_y <= puck_y + 15) {
 
 					active_cluster = -1;
 					active_trigger_cluster = -1;
@@ -1290,8 +1293,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				float box_x = texture_box_array[i].rect.x;
 				float box_y = texture_box_array[i].rect.y;
 				
-				if (mouse_x >= box_x && mouse_x <= box_x + 30 &&
-					mouse_y >= box_y && mouse_y <= box_y + 30) {
+				if (world_mouse_x >= box_x && world_mouse_x <= box_x + 30 / zoom_scale &&
+					world_mouse_y >= box_y && world_mouse_y <= box_y + 30 / zoom_scale) {
 
 					active_cluster = -1;
 					active_trigger_cluster = -1;
