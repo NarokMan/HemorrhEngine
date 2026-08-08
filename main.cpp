@@ -677,18 +677,18 @@ std::vector<struct trigger_cluster> trigger_cluster_array;
 std::vector<struct puck> puck_array;
 std::vector<struct texture_box> texture_box_array;
 
-bool player_position_selection_state = true; // True is selecting player position, false is selecting angle
-bool texture_box_selection_state = true; // True is selecting box x1 and y1, false is selecting x2 and y2
-int player_start_angle = 0;
-int player_start_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2;
-int player_start_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
-
 float zoom_scale = 1.0f;
 float zoom_factor = 1.1f;
 int zoom_center_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2 - ((WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2 % 10);
 int zoom_center_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2 - ((WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2 % 10);
 int camera_x = zoom_center_x; // ^^ This part was weird lol. The rounding has to happen in order for grid snapping to work lmao
 int camera_y = zoom_center_y; // (900 + 50) / 2 = 475, which isn't divisible by 10
+
+bool player_position_selection_state = true; // True is selecting player position, false is selecting angle
+bool texture_box_selection_state = true; // True is selecting box x1 and y1, false is selecting x2 and y2
+int player_start_angle = 0;
+int player_start_x = zoom_center_x;
+int player_start_y = zoom_center_y;
 
 std::string map_music_file = "";
 std::string texture_file = "";
