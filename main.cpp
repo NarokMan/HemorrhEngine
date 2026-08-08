@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <cmath>
 
 #define TARGET_FPS 30
 
@@ -684,10 +685,10 @@ int player_start_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
 
 float zoom_scale = 1.0f;
 float zoom_factor = 1.1f;
-int zoom_center_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2;
-int zoom_center_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2;
-int camera_x = zoom_center_x;
-int camera_y = zoom_center_y;
+int zoom_center_x = (WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2 - ((WINDOW_WIDTH + GRID_LEFT_MARGIN) / 2 % 10);
+int zoom_center_y = (WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2 - ((WINDOW_HEIGHT + GRID_UPPER_MARGIN) / 2 % 10);
+int camera_x = zoom_center_x; // ^^ This part was weird lol. The rounding has to happen in order for grid snapping to work lmao
+int camera_y = zoom_center_y; // (900 + 50) / 2 = 475, which isn't divisible by 10
 
 std::string map_music_file = "";
 std::string texture_file = "";
@@ -843,6 +844,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		if (event->button.button == SDL_BUTTON_LEFT) {
 			
 			SDL_Log("Mouse: %d, %d", mouse_x, mouse_y);
+			float snapped_mouse_x = screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x) - fmod(screen_to_world(mouse_x, camera_x, zoom_scale, zoom_center_x), 10.0f * zoom_scale);
+			float snapped_mouse_y = screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y) - fmod(screen_to_world(mouse_y, camera_y, zoom_scale, zoom_center_y), 10.0f * zoom_scale);
 			
 			for (int i = 0; i < ui_buttons.size(); i++) {
 				if (mouse_x >= ui_buttons[i].rect.x && mouse_x <= ui_buttons[i].rect.x + ui_buttons[i].rect.w &&
@@ -862,10 +865,10 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					temp_cluster = collision_cluster();
 					temp_cluster.collision = INSIDE;
 					temp_cluster.node_array.push_back({ 
-						(float)screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x), 
-						(float)screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) });
+						snapped_mouse_x, 
+						snapped_mouse_y });
                     collision_cluster_array.push_back(temp_cluster);
-                    SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
+                    SDL_Log("Adding new node at (%f, %f)", snapped_mouse_x, snapped_mouse_y);
 
 					active_cluster = collision_cluster_array.size() - 1;
                     active_trigger_cluster = -1;
@@ -891,8 +894,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					if (active_cluster != -1) {
 
                         collision_cluster_array[active_cluster].node_array.push_back({ 
-							(float)screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x), 
-							(float)screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) });
+							(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
+							(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
                         SDL_Log("Adding new node at (%d, %d)", mouse_x, mouse_y);
                 
 				    }
@@ -908,8 +911,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     temp_trigger = trigger_cluster();
                     temp_trigger.destination_map_name = "";
                     temp_trigger.node_array.push_back({ 
-						(float)screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x), 
-						(float)screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) });
+						(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
+						(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
                     trigger_cluster_array.push_back(temp_trigger); // Create an initial node to start the cluster off
                     SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
@@ -937,8 +940,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                     if (active_trigger_cluster != -1) {
 
                         trigger_cluster_array[active_trigger_cluster].node_array.push_back({ 
-							(float)screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x), 
-							(float)screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) });
+							(float)screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x), 
+							(float)screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
                         SDL_Log("Adding new trigger node at (%d, %d)", mouse_x, mouse_y);
 
                     }
@@ -954,8 +957,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					// 0 if the user is selecting the x/y location. Will switch to false when angle is being selected
 					if (player_position_selection_state == true) {
 						
-						player_start_x = screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x);
-						player_start_y = screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y);
+						player_start_x = screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x);
+						player_start_y = screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y);
 						player_position_selection_state = false;
 						
 					} else {
@@ -970,8 +973,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
                 case 19: // Add new puck
                 
 					puck_array.push_back( {
-						screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x),
-						screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) });
+						screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x),
+						screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) });
 						
 					active_cluster = -1;
 					active_trigger_cluster = -1;
@@ -996,8 +999,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 				
 					if (texture_box_selection_state == true) {
 						
-						temp_texture_box.rect.x = screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x);
-						temp_texture_box.rect.y = screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y);
+						temp_texture_box.rect.x = screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x);
+						temp_texture_box.rect.y = screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y);
 						temp_texture_box.rect.w = 0;
 						temp_texture_box.rect.h = 0;
 						
@@ -1012,8 +1015,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 						
 					} else {
 						
-						texture_box_array[active_texture_box].rect.w = screen_to_world(mouse_x - mouse_x % 10, camera_x, zoom_scale, zoom_center_x) - texture_box_array[active_texture_box].rect.x;
-						texture_box_array[active_texture_box].rect.h = screen_to_world(mouse_y - mouse_y % 10, camera_y, zoom_scale, zoom_center_y) - texture_box_array[active_texture_box].rect.y;
+						texture_box_array[active_texture_box].rect.w = screen_to_world(snapped_mouse_x, camera_x, zoom_scale, zoom_center_x) - texture_box_array[active_texture_box].rect.x;
+						texture_box_array[active_texture_box].rect.h = screen_to_world(snapped_mouse_y, camera_y, zoom_scale, zoom_center_y) - texture_box_array[active_texture_box].rect.y;
 						
 						texture_box_selection_state = true;
 						
@@ -1164,14 +1167,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 					
 				case 13: // Zoom in (action)
 				
-					zoom_scale *= 1.5;
+					zoom_scale *= 2;
 					SDL_Log("Zoom increased to %f", zoom_scale);
 				
 					break;
 					
 				case 14: // Zoom out (action)
 				
-					zoom_scale /= 1.5;
+					zoom_scale /= 2;
 					SDL_Log("Zoom lowered to %f", zoom_scale);
 					
 					break;
