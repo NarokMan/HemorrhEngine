@@ -1327,104 +1327,98 @@ SDL_AppResult SDL_AppIterate(void* appstate)
     SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
 
     SDL_RenderClear(renderer);
-
-	/*
-	// Draw horizontal workspace gridlines
-    for (float i = GRID_UPPER_MARGIN; i < WINDOW_HEIGHT; i += 100 * zoom_scale) {
-
-        SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-        for (float j = 0; j < 100; j += 10 * zoom_scale)
-            SDL_RenderLine(renderer, 0, i + j, WINDOW_WIDTH, i + j);
-
-		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, 0, i + 50, WINDOW_WIDTH, i + 50);
-
-        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
-
-    }
-    
-    // Draw vertical workspace gridlines
-    for (float i = GRID_LEFT_MARGIN; i < WINDOW_WIDTH + 50; i += 100 * zoom_scale) { // the 50 here is just a bit extra so the grid lines get to the edge
-
-        SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-        for (float j = 0; j < 100; j += 10 * zoom_scale)
-            SDL_RenderLine(renderer, i + j - 50, 0, i + j - 50, WINDOW_HEIGHT);
-
-		SDL_SetRenderDrawColorFloat(renderer, 0.8, 0], 0, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
-
-        SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, i - 50, 0, i - 50, WINDOW_HEIGHT);
-
-    }
-    */
+	
+	float on_screen_loc;
 	
     // Draw horizontal workspace gridlines
-    for (float i = camera_y; i < screen_to_world(WINDOW_HEIGHT, camera_y, zoom_scale, zoom_center_y); i += 100 * zoom_scale) {
+    for (float i = camera_y; i < screen_to_world(WINDOW_HEIGHT, camera_y, zoom_scale, zoom_center_y); i += 100) {
+
+		on_screen_loc = world_to_screen(i, camera_y, zoom_scale, zoom_center_y);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
+        SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
         
         for (int j = 1; j < 10; j++) {
 			
+			on_screen_loc = world_to_screen(i + j * 10, camera_y, zoom_scale, zoom_center_y);
+			
 			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-			SDL_RenderLine(renderer, 0, i + j * 10 * zoom_scale, WINDOW_WIDTH, i + j * 10 * zoom_scale);
+			SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
 			
 		}
 		
+		on_screen_loc = world_to_screen(i + 50, camera_y, zoom_scale, zoom_center_y);
+		
 		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-		SDL_RenderLine(renderer, 0, i + 50 * zoom_scale, WINDOW_WIDTH, i + 50 * zoom_scale);
+		SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
 
     }
-    for (float i = camera_y; i > screen_to_world(50, camera_y, zoom_scale, zoom_center_y); i -= 100 * zoom_scale) {
+    for (float i = camera_y; i > screen_to_world(50, camera_y, zoom_scale, zoom_center_y); i -= 100) {
+
+		on_screen_loc = world_to_screen(i, camera_y, zoom_scale, zoom_center_y);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, 0, i, WINDOW_WIDTH, i);
+        SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
         
         for (int j = 1; j < 10; j++) {
 			
+			on_screen_loc = world_to_screen(i - j * 10, camera_y, zoom_scale, zoom_center_y);
+			
 			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-			SDL_RenderLine(renderer, 0, i - j * 10 * zoom_scale, WINDOW_WIDTH, i - j * 10 * zoom_scale);
+			SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
 			
 		}
 		
+		on_screen_loc = world_to_screen(i - 50, camera_y, zoom_scale, zoom_center_y);
+
 		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-		SDL_RenderLine(renderer, 0, i - 50 * zoom_scale, WINDOW_WIDTH, i - 50 * zoom_scale);
+		SDL_RenderLine(renderer, 0, on_screen_loc, WINDOW_WIDTH, on_screen_loc);
 
     }
     
     // Draw vertical workspace gridlines
-    for (float i = camera_x; i < screen_to_world(WINDOW_WIDTH, camera_x, zoom_scale, zoom_center_x); i += 100 * zoom_scale) {
+    for (float i = camera_x; i < screen_to_world(WINDOW_WIDTH, camera_x, zoom_scale, zoom_center_x); i += 100) {
+
+		on_screen_loc = world_to_screen(i, camera_x, zoom_scale, zoom_center_x);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
+        SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
         
         for (int j = 1; j < 10; j++) {
 			
+			on_screen_loc = world_to_screen(i + j * 10, camera_x, zoom_scale, zoom_center_x);
+			
 			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-			SDL_RenderLine(renderer, i + j * 10 * zoom_scale, 0, i + j * 10 * zoom_scale, WINDOW_HEIGHT);
+			SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
 			
 		}
 		
+		on_screen_loc = world_to_screen(i + 50, camera_x, zoom_scale, zoom_center_x);
+		
 		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-		SDL_RenderLine(renderer, i + 50 * zoom_scale, 0, i + 50 * zoom_scale, WINDOW_HEIGHT);
+		SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
 
     }
-    for (float i = camera_x; i > screen_to_world(100, camera_x, zoom_scale, zoom_center_x); i -= 100 * zoom_scale) {
+    for (float i = camera_x; i > screen_to_world(100, camera_x, zoom_scale, zoom_center_x); i -= 100) {
+
+		on_screen_loc = world_to_screen(i, camera_x, zoom_scale, zoom_center_x);
 
         SDL_SetRenderDrawColorFloat(renderer, 1, 1, 1, SDL_ALPHA_OPAQUE_FLOAT);
-        SDL_RenderLine(renderer, i, 0, i, WINDOW_HEIGHT);
+        SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
         
         for (int j = 1; j < 10; j++) {
+
+			on_screen_loc = world_to_screen(i - j * 10, camera_x, zoom_scale, zoom_center_x);
 			
 			SDL_SetRenderDrawColorFloat(renderer, 0.4, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-			SDL_RenderLine(renderer, i - j * 10 * zoom_scale, 0, i - j * 10 * zoom_scale, WINDOW_HEIGHT);
+			SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
 			
 		}
 		
+		on_screen_loc = world_to_screen(i - 50, camera_x, zoom_scale, zoom_center_x);
+		
 		SDL_SetRenderDrawColorFloat(renderer, 1, 0, 0, SDL_ALPHA_OPAQUE_FLOAT);
-		SDL_RenderLine(renderer, i - 50 * zoom_scale, 0, i - 50 * zoom_scale, WINDOW_HEIGHT);
+		SDL_RenderLine(renderer, on_screen_loc, 0, on_screen_loc, WINDOW_HEIGHT);
 
     }
 
